@@ -131,6 +131,151 @@ def extract_pdfs_from_zip(zip_bytes):
         st.error(f"Error extracting ZIP: {e}")
         return []
 
+def create_instagram_posts(photo_bytes, street_address, city_state):
+    """Create 3 Instagram posts using template PNG files and property photo"""
+    if not PIL_AVAILABLE:
+        return []
+        
+    created_files = []
+    
+    # Instagram post specifications
+    post_width = 1080  # pixels
+    post_height = 1350  # pixels
+    photo_width = 1080  # Match post width for proper aspect ratio
+    photo_height = int(1085.2)  # pixels - reduced by 5 pixels to avoid covering colored banner
+    
+    # Template files with specific positioning and colors for each type
+    templates = [
+        ("templates/Instagram New Post Template.png", "New Listing", "centered_offset", 100, 1206, "white"),
+        ("templates/Instagram Under Contract Post Template.png", "Under Contract", "centered_offset", 100, 1206, "#173348"),
+        ("templates/Instagram Sold Post Template.png", "Sold", "centered_offset", 100, 1206, "#173348")
+    ]
+    
+    try:
+        from PIL import ImageDraw, ImageFont
+        
+        for template_file, post_type, text_alignment, text_x, text_y, text_color in templates:
+            if not os.path.exists(template_file):
+                st.warning(f"Template not found: {template_file}")
+                continue
+                
+            try:
+                # Create new image with Instagram dimensions
+                instagram_post = Image.new('RGB', (post_width, post_height), 'white')
+                
+                # Load and apply template as background
+                template_img = Image.open(template_file)
+                template_img = template_img.resize((post_width, post_height), Image.Resampling.LANCZOS)
+                
+                if template_img.mode == 'RGBA':
+                    instagram_post.paste(template_img, (0, 0), template_img)
+                else:
+                    instagram_post.paste(template_img, (0, 0))
+                
+                # Overlay property photo
+                if photo_bytes:
+                    property_photo = Image.open(BytesIO(photo_bytes))
+                    
+                    # Calculate proper cropping to maintain aspect ratio
+                    original_width, original_height = property_photo.size
+                    target_aspect = photo_width / photo_height
+                    original_aspect = original_width / original_height
+                    
+                    if original_aspect > target_aspect:
+                        # Photo is wider than needed, crop width
+                        new_height = original_height
+                        new_width = int(new_height * target_aspect)
+                        left = (original_width - new_width) // 2
+                        crop_box = (left, 0, left + new_width, new_height)
+                    else:
+                        # Photo is taller than needed, crop height
+                        new_width = original_width
+                        new_height = int(new_width / target_aspect)
+                        top = (original_height - new_height) // 2
+                        crop_box = (0, top, new_width, top + new_height)
+                    
+                    # Crop and resize to exact specifications
+                    property_photo = property_photo.crop(crop_box)
+                    property_photo = property_photo.resize((photo_width, photo_height), Image.Resampling.LANCZOS)
+                    
+                    # Paste photo at top center
+                    photo_x = (post_width - photo_width) // 2
+                    photo_y = 0
+                    instagram_post.paste(property_photo, (photo_x, photo_y))
+                
+                # Add address text overlay
+                if street_address:
+                    try:
+                        draw = ImageDraw.Draw(instagram_post)
+                        
+                        # Try to load a font - fall back to default if needed
+                        try:
+                            font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 59)
+                        except:
+                            try:
+                                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 59)
+                            except:
+                                font = ImageFont.load_default()
+                        
+                        # Convert to uppercase for branding
+                        street_address_upper = street_address.upper()
+                        
+                        # Calculate text positioning
+                        if text_alignment == "centered_offset":
+                            bbox = draw.textbbox((0, 0), street_address_upper, font=font)
+                            text_width = bbox[2] - bbox[0]
+                            text_x_final = (post_width // 2) - (text_width // 2) + text_x
+                        elif text_alignment == "centered":
+                            bbox = draw.textbbox((0, 0), street_address_upper, font=font)
+                            text_width = bbox[2] - bbox[0]
+                            text_x_final = (post_width - text_width) // 2
+                        else:
+                            text_x_final = text_x
+                        
+                        # Add street address text
+                        draw.text((text_x_final, text_y), street_address_upper, fill=text_color, font=font)
+                        
+                        # Add city/state below if available
+                        if city_state:
+                            try:
+                                small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 40)
+                            except:
+                                small_font = font
+                            
+                            city_state_upper = city_state.upper()
+                            
+                            if text_alignment == "centered_offset":
+                                bbox = draw.textbbox((0, 0), city_state_upper, font=small_font)
+                                city_text_width = bbox[2] - bbox[0]
+                                city_x_final = (post_width // 2) - (city_text_width // 2) + text_x
+                            else:
+                                bbox = draw.textbbox((0, 0), city_state_upper, font=small_font)
+                                city_text_width = bbox[2] - bbox[0]
+                                city_x_final = (post_width - city_text_width) // 2
+                            
+                            draw.text((city_x_final, text_y + 60), city_state_upper, fill=text_color, font=small_font)
+                    except Exception as text_e:
+                        st.warning(f"Could not add text to {post_type}: {text_e}")
+                
+                # Convert to bytes for download
+                output_buffer = BytesIO()
+                instagram_post.save(output_buffer, format='PNG', quality=95)
+                
+                created_files.append({
+                    'name': f"{street_address} - {post_type} - Instagram.png",
+                    'data': output_buffer.getvalue(),
+                    'type': post_type
+                })
+                
+            except Exception as e:
+                st.warning(f"Could not create {post_type} Instagram post: {e}")
+                continue
+                
+    except Exception as e:
+        st.error(f"Error creating Instagram posts: {e}")
+    
+    return created_files
+
 def convert_jpg_to_pdf(jpg_bytes, filename):
     """Convert JPG to PDF"""
     if not PIL_AVAILABLE:
@@ -243,10 +388,18 @@ def main():
         if not COVER_AVAILABLE:
             st.warning("⚠️ Cover page feature requires additional libraries. Install reportlab and Pillow.")
         
+        # Instagram posts option
+        include_instagram = st.checkbox("📱 Create Instagram Posts", value=False, disabled=not PIL_AVAILABLE)
+        if not PIL_AVAILABLE:
+            st.warning("⚠️ Instagram posts require Pillow library.")
+        elif include_instagram:
+            st.info("📸 Will create 3 Instagram posts: New Listing, Under Contract, Sold")
+        
         # Property photo upload
         cover_photo = None
-        if include_cover and COVER_AVAILABLE:
-            cover_photo = st.file_uploader("📸 Property Photo", type=['jpg', 'jpeg', 'png'])
+        if (include_cover and COVER_AVAILABLE) or (include_instagram and PIL_AVAILABLE):
+            cover_photo = st.file_uploader("📸 Property Photo", type=['jpg', 'jpeg', 'png'], 
+                                         help="Required for cover page and Instagram posts")
     
     # Main content area
     col1, col2 = st.columns([1, 1])
@@ -300,6 +453,12 @@ def main():
                         # Get cover photo bytes
                         cover_photo_bytes = cover_photo.getvalue() if cover_photo else None
                         
+                        # Check if address is required for cover page or Instagram posts
+                        if (include_cover or include_instagram) and cover_photo_bytes:
+                            if not street_address or not city_state:
+                                st.error("⚠️ Please enter both street address and city/state for cover page and Instagram posts!")
+                                st.stop()
+                        
                         # Create packet
                         packet_bytes = create_packet(
                             pdf_files, 
@@ -309,6 +468,12 @@ def main():
                             include_cover
                         )
                         
+                        # Create Instagram posts if requested
+                        instagram_files = []
+                        if include_instagram and cover_photo_bytes and PIL_AVAILABLE and street_address and city_state:
+                            with st.spinner("Creating Instagram posts..."):
+                                instagram_files = create_instagram_posts(cover_photo_bytes, street_address, city_state)
+                        
                         if packet_bytes:
                             # Create filename
                             if street_address:
@@ -316,20 +481,39 @@ def main():
                             else:
                                 filename = "Listing Packet.pdf"
                             
-                            # Provide download button
+                            # Provide download button for packet
                             st.success("✅ Packet created successfully!")
-                            st.download_button(
-                                label="📥 Download Listing Packet",
-                                data=packet_bytes,
-                                file_name=filename,
-                                mime="application/pdf"
-                            )
+                            
+                            col1, col2 = st.columns(2)
+                            
+                            with col1:
+                                st.download_button(
+                                    label="📥 Download Listing Packet",
+                                    data=packet_bytes,
+                                    file_name=filename,
+                                    mime="application/pdf"
+                                )
+                            
+                            # Provide download buttons for Instagram posts
+                            if instagram_files:
+                                with col2:
+                                    st.success(f"📱 Created {len(instagram_files)} Instagram posts!")
+                                
+                                for instagram_file in instagram_files:
+                                    st.download_button(
+                                        label=f"📱 Download {instagram_file['type']} Post",
+                                        data=instagram_file['data'],
+                                        file_name=instagram_file['name'],
+                                        mime="image/png",
+                                        key=f"download_{instagram_file['type']}"
+                                    )
                             
                             # Show summary
                             st.info(f"""
                             **Packet Summary:**
                             • Combined {len(pdf_files)} files
                             • Cover page: {'✅ Included' if include_cover and cover_photo_bytes else '❌ Not included'}
+                            • Instagram posts: {'✅ Created ' + str(len(instagram_files)) + ' posts' if instagram_files else '❌ Not created'}
                             • Property: {street_address or 'No address specified'}
                             • Location: {city_state or 'No location specified'}
                             """)
@@ -351,6 +535,17 @@ def main():
         st.markdown("**🖼️ JPG to PDF**\nConvert JPG images to PDF format")
     with col4:
         st.markdown("**🏠 Custom Covers**\nAdd branded cover pages with property photos")
+    
+    # Second row of features
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.markdown("**📱 Instagram Posts**\nCreate 3 social media posts (New, Under Contract, Sold)")
+    with col2:
+        st.markdown("**🎨 Hall Collins Branding**\nProfessional templates with company colors")
+    with col3:
+        st.markdown("**☁️ Web Based**\nNo software installation required")
+    with col4:
+        st.markdown("**📱 Mobile Ready**\nWorks on phones, tablets, and computers")
     
     # Footer
     st.markdown("---")
