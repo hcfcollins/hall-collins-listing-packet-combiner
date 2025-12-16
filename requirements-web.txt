@@ -1,0 +1,16 @@
+# Hall Collins Listing Packet Combiner - Web Application Requirements
+
+# Core web framework
+streamlit>=1.28.0
+
+# PDF processing
+PyPDF2>=3.0.0
+
+# Image processing
+Pillow>=9.0.0
+
+# PDF generation
+reportlab>=4.0.0
+
+# Additional web app dependencies
+watchdog>=3.0.0  # For streamlit file watching
