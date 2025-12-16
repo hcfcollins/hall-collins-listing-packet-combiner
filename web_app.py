@@ -271,13 +271,13 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                     try:
                         draw = ImageDraw.Draw(instagram_post)
                         
-                        # Try to load a font - use exact same logic as original
+                        # Try to load a font - increased size for better visibility
                         try:
-                            # Try to use a system font - size 59 (51 * 1.15) for additional 15% increase
-                            font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 59)
+                            # Try to use a system font - size 120 for much better visibility on Instagram
+                            font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 120)
                         except:
                             try:
-                                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 59)
+                                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 120)
                             except:
                                 # Fall back to default font
                                 font = ImageFont.load_default()
@@ -306,12 +306,12 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                         # Add city/state below street address if available
                         if city_state:
                             try:
-                                # Use smaller font for city/state - exact logic from original
+                                # Use larger font for city/state - increased for better visibility
                                 try:
-                                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 40)  # 35 * 1.15 for additional 15% increase
+                                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 90)  # Much larger for visibility
                                 except:
                                     try:
-                                        small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 40)  # 35 * 1.15 for additional 15% increase
+                                        small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 90)  # Much larger for visibility
                                     except:
                                         small_font = font  # Use same font if others fail
                                 
@@ -328,7 +328,7 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                                 else:
                                     city_x_final = text_x
                                 
-                                city_position = (city_x_final, text_y + 60)
+                                city_position = (city_x_final, text_y + 120)  # Increased spacing for larger fonts
                                 draw.text(city_position, city_state_upper, fill=text_color, font=small_font)
                             except Exception as city_e:
                                 st.warning(f"Could not add city/state text: {city_e}")
