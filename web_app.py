@@ -61,51 +61,114 @@ def parse_address(full_address):
     return street, city_state
 
 def create_cover_page(photo_bytes, street_address, city_state, output_path):
-    """Create custom cover page using uploaded photo"""
+    """Create custom cover page matching the original desktop app design"""
     if not COVER_AVAILABLE:
         return False
     
     try:
-        # Use standard letter size
+        # Use standard letter size - 8.5" x 11"
         page_width = 8.5 * inch
         page_height = 11 * inch
         
+        # Create the PDF
         c = canvas.Canvas(output_path, pagesize=(page_width, page_height))
         
-        # Add property photo
+        # First, draw the Hall Collins template as the base (full page)
+        template_image_path = "templates/1) HC -  Template Bottom Photo.png"
+        if os.path.exists(template_image_path):
+            try:
+                # Draw the complete template first - covers entire page
+                c.drawImage(template_image_path, 0, 0, width=page_width, height=page_height)
+            except Exception as e:
+                st.warning(f"Could not add template base: {e}")
+        else:
+            st.warning(f"Template file not found: {template_image_path}")
+        
+        # Add property photo overlay (covers the photo area of the template)
         if photo_bytes:
             temp_photo = tempfile.mktemp(suffix='.jpg')
-            with open(temp_photo, 'wb') as f:
-                f.write(photo_bytes)
-            
-            # Calculate photo dimensions (maintain aspect ratio)
-            photo_width = 6 * inch
-            photo_height = 4 * inch
-            photo_x = (page_width - photo_width) / 2
-            photo_y = page_height - photo_height - 2 * inch
-            
-            c.drawImage(temp_photo, photo_x, photo_y, photo_width, photo_height)
-            os.unlink(temp_photo)
+            try:
+                with open(temp_photo, 'wb') as f:
+                    f.write(photo_bytes)
+                
+                # Cover exactly 7.12" from the top of the page (photo area only)
+                photo_width = page_width  # Full page width
+                photo_height = 7.12 * inch  # Exactly 7.12 inches tall
+                photo_x = 0  # Start at absolute left edge
+                photo_y = page_height - photo_height  # Position from top: 11" - 7.12" = 3.88" from bottom
+                
+                # Draw photo over the template - covers exactly 7.12" from top
+                c.drawImage(temp_photo, photo_x, photo_y, width=photo_width, height=photo_height)
+                
+            except Exception as e:
+                st.warning(f"Could not add photo overlay: {e}")
+            finally:
+                if os.path.exists(temp_photo):
+                    os.unlink(temp_photo)
         
-        # Add Hall Collins branding
-        c.setFillColor(colors.HexColor('#2C3E50'))
-        c.setFont("Helvetica-Bold", 24)
-        c.drawCentredString(page_width / 2, 1.5 * inch, "HALL COLLINS")
+        # Add Hall Collins white logo overlay on the photo
+        logo_overlay_path = "templates/HC_Solid White Logo_Transparent Back.png"
+        if os.path.exists(logo_overlay_path):
+            try:
+                # Size the logo 50% larger (5.75" * 1.5 = 8.625" wide)
+                logo_width = 8.625 * inch
+                logo_img = PIL_AVAILABLE and Image.open(logo_overlay_path)
+                if logo_img:
+                    logo_height = logo_img.height * (logo_width / logo_img.width)
+                    
+                    # Position logo centered horizontally, with CENTER 1" from top
+                    logo_x = (page_width - logo_width) / 2
+                    logo_y = page_height - (1.0 * inch) - (logo_height / 2)
+                    
+                    c.drawImage(logo_overlay_path, logo_x, logo_y, width=logo_width, height=logo_height, mask='auto')
+                
+            except Exception as logo_e:
+                st.warning(f"Could not add logo overlay: {logo_e}")
         
-        c.setFillColor(colors.HexColor('#E91E63'))
-        c.setFont("Helvetica-Bold", 16)
-        c.drawCentredString(page_width / 2, 1.2 * inch, "REAL ESTATE GROUP")
-        
-        # Add property address
+        # Add address text overlays on the photo
         if street_address:
-            c.setFillColor(colors.black)
-            c.setFont("Helvetica-Bold", 18)
-            c.drawCentredString(page_width / 2, 0.8 * inch, street_address)
+            try:
+                # Try fonts in order of preference - using regular (non-bold) fonts
+                font_name = "Times-Roman"
+                for font_option in ["PlayfairDisplay-Regular", "EBGaramond-Regular", "Times-Roman"]:
+                    try:
+                        c.setFont(font_option, 36)
+                        font_name = font_option
+                        break
+                    except:
+                        continue
+                
+                c.setFillColor(colors.white)
+                # Position street address text on the photo - convert to uppercase
+                street_address_upper = street_address.upper()
+                text_width = c.stringWidth(street_address_upper, font_name, 36)
+                x_position = (page_width - text_width) / 2
+                c.drawString(x_position, 3.21 * inch, street_address_upper)
+            except Exception as text_e:
+                st.warning(f"Could not add street address: {text_e}")
         
         if city_state:
-            c.setFont("Helvetica", 14)
-            c.drawCentredString(page_width / 2, 0.5 * inch, city_state)
+            try:
+                # Try fonts in order of preference - using regular (non-bold) fonts  
+                font_name = "Times-Roman"
+                for font_option in ["PlayfairDisplay-Regular", "EBGaramond-Regular", "Times-Roman"]:
+                    try:
+                        c.setFont(font_option, 24)
+                        font_name = font_option
+                        break
+                    except:
+                        continue
+                
+                c.setFillColor(colors.white)
+                # Position city/state text on the photo - convert to uppercase
+                city_state_upper = city_state.upper()
+                text_width = c.stringWidth(city_state_upper, font_name, 24)
+                x_position = (page_width - text_width) / 2
+                c.drawString(x_position, 2.58 * inch, city_state_upper)
+            except Exception as text_e:
+                st.warning(f"Could not add city/state: {text_e}")
         
+        # Save the PDF
         c.save()
         return True
         
@@ -332,6 +395,20 @@ def create_packet(pdf_files, street_address, city_state, cover_photo_bytes, incl
         st.error(f"Error creating packet: {e}")
         return None
 
+def get_hall_collins_logo():
+    """Get Hall Collins logo as base64 for display in web app"""
+    try:
+        # Try templates folder first, then root directory
+        for logo_path in ["templates/hall_collins_logo.png", "hall_collins_logo.png"]:
+            if os.path.exists(logo_path):
+                with open(logo_path, 'rb') as f:
+                    logo_data = f.read()
+                if len(logo_data) > 0:  # Make sure file isn't empty
+                    return base64.b64encode(logo_data).decode()
+    except Exception:
+        pass
+    return None
+
 def main():
     # Page configuration
     st.set_page_config(
@@ -361,6 +438,7 @@ def main():
         font-size: 2.5rem;
         font-weight: bold;
         margin-bottom: 0.5rem;
+        margin-top: 0;
     }
     .sub-header {
         color: #E91E63;
@@ -380,11 +458,34 @@ def main():
     .stButton > button:hover {
         background-color: #C2185B;
     }
+    .logo-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
     </style>
     """, unsafe_allow_html=True)
     
     # Header
-    st.markdown('<h1 class="main-header">🏡 Hall Collins Listing Packet Combiner</h1>', unsafe_allow_html=True)
+    # Get Hall Collins logo
+    logo_base64 = get_hall_collins_logo()
+    
+    if logo_base64:
+        # Display logo and title together
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            # Center the logo
+            st.markdown(f"""
+            <div style="text-align: center; margin-bottom: 1rem;">
+                <img src="data:image/png;base64,{logo_base64}" style="width: 300px; max-width: 100%; height: auto;">
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown('<h1 class="main-header">Listing Packet Combiner</h1>', unsafe_allow_html=True)
+    else:
+        # Fallback to text-only header
+        st.markdown('<h1 class="main-header">🏡 Hall Collins Listing Packet Combiner</h1>', unsafe_allow_html=True)
+    
     st.markdown('<p class="sub-header">Professional Real Estate Listing Packet Creator</p>', unsafe_allow_html=True)
     
     # Sidebar for controls
