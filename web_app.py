@@ -271,13 +271,13 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                     try:
                         draw = ImageDraw.Draw(instagram_post)
                         
-                        # Try to load a font - size 36 to match cover page
+                        # Try to load a font - large size for Instagram visibility
                         try:
-                            # Try to use a system font - size 36 to match PDF cover page
-                            font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 36)
+                            # Try to use a system font - size 80 for good Instagram visibility
+                            font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 80)
                         except:
                             try:
-                                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 36)
+                                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 80)
                             except:
                                 # Fall back to default font
                                 font = ImageFont.load_default()
@@ -306,12 +306,12 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                         # Add city/state below street address if available
                         if city_state:
                             try:
-                                # Use font size 24 to match cover page
+                                # Use larger font for city/state text
                                 try:
-                                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 24)  # Match cover page size
+                                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 60)  # Good size for Instagram
                                 except:
                                     try:
-                                        small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 24)  # Match cover page size
+                                        small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 60)  # Good size for Instagram
                                     except:
                                         small_font = font  # Use same font if others fail
                                 
