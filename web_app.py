@@ -271,54 +271,70 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                     try:
                         draw = ImageDraw.Draw(instagram_post)
                         
-                        # Try to load a font - fall back to default if needed
+                        # Try to load a font - use exact same logic as original
                         try:
+                            # Try to use a system font - size 59 (51 * 1.15) for additional 15% increase
                             font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 59)
                         except:
                             try:
                                 font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 59)
                             except:
+                                # Fall back to default font
                                 font = ImageFont.load_default()
                         
-                        # Convert to uppercase for branding
+                        # Convert street address to uppercase for consistent branding
                         street_address_upper = street_address.upper()
                         
-                        # Calculate text positioning
+                        # Calculate text positioning based on post type - exact logic from original
                         if text_alignment == "centered_offset":
-                            bbox = draw.textbbox((0, 0), street_address_upper, font=font)
-                            text_width = bbox[2] - bbox[0]
-                            text_x_final = (post_width // 2) - (text_width // 2) + text_x
+                            # For Under Contract: center text with offset
+                            text_width = draw.textbbox((0, 0), street_address_upper, font=font)[2]
+                            text_x_final = (post_width // 2) - (text_width // 2) + text_x  # Center and offset by text_x
                         elif text_alignment == "centered":
-                            bbox = draw.textbbox((0, 0), street_address_upper, font=font)
-                            text_width = bbox[2] - bbox[0]
-                            text_x_final = (post_width - text_width) // 2
+                            # For New Listing and Sold: center text perfectly
+                            text_width = draw.textbbox((0, 0), street_address_upper, font=font)[2]
+                            text_x_final = (post_width - text_width) // 2  # Perfect center
                         else:
+                            # For other cases: use absolute positioning
                             text_x_final = text_x
                         
-                        # Add street address text
-                        draw.text((text_x_final, text_y), street_address_upper, fill=text_color, font=font)
+                        text_position = (text_x_final, text_y)
                         
-                        # Add city/state below if available
+                        # Add street address text with specified color
+                        draw.text(text_position, street_address_upper, fill=text_color, font=font)
+                        
+                        # Add city/state below street address if available
                         if city_state:
                             try:
-                                small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 40)
-                            except:
-                                small_font = font
-                            
-                            city_state_upper = city_state.upper()
-                            
-                            if text_alignment == "centered_offset":
-                                bbox = draw.textbbox((0, 0), city_state_upper, font=small_font)
-                                city_text_width = bbox[2] - bbox[0]
-                                city_x_final = (post_width // 2) - (city_text_width // 2) + text_x
-                            else:
-                                bbox = draw.textbbox((0, 0), city_state_upper, font=small_font)
-                                city_text_width = bbox[2] - bbox[0]
-                                city_x_final = (post_width - city_text_width) // 2
-                            
-                            draw.text((city_x_final, text_y + 60), city_state_upper, fill=text_color, font=small_font)
+                                # Use smaller font for city/state - exact logic from original
+                                try:
+                                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 40)  # 35 * 1.15 for additional 15% increase
+                                except:
+                                    try:
+                                        small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 40)  # 35 * 1.15 for additional 15% increase
+                                    except:
+                                        small_font = font  # Use same font if others fail
+                                
+                                # Convert city/state to uppercase for consistent branding
+                                city_state_upper = city_state.upper()
+                                
+                                # Position city/state below street address with same alignment
+                                if text_alignment == "centered_offset":
+                                    city_text_width = draw.textbbox((0, 0), city_state_upper, font=small_font)[2]
+                                    city_x_final = (post_width // 2) - (city_text_width // 2) + text_x
+                                elif text_alignment == "centered":
+                                    city_text_width = draw.textbbox((0, 0), city_state_upper, font=small_font)[2]
+                                    city_x_final = (post_width - city_text_width) // 2  # Perfect center
+                                else:
+                                    city_x_final = text_x
+                                
+                                city_position = (city_x_final, text_y + 60)
+                                draw.text(city_position, city_state_upper, fill=text_color, font=small_font)
+                            except Exception as city_e:
+                                st.warning(f"Could not add city/state text: {city_e}")
+                        
                     except Exception as text_e:
-                        st.warning(f"Could not add text to {post_type}: {text_e}")
+                        st.warning(f"Could not add address text to {post_type}: {text_e}")
                 
                 # Convert to bytes for download
                 output_buffer = BytesIO()
