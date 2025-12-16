@@ -340,6 +340,18 @@ def main():
         layout="wide"
     )
     
+    # Initialize session state
+    if 'packet_data' not in st.session_state:
+        st.session_state.packet_data = None
+    if 'instagram_files' not in st.session_state:
+        st.session_state.instagram_files = []
+    if 'packet_filename' not in st.session_state:
+        st.session_state.packet_filename = ""
+    if 'processing_complete' not in st.session_state:
+        st.session_state.processing_complete = False
+    if 'packet_summary' not in st.session_state:
+        st.session_state.packet_summary = ""
+    
     # Custom CSS for Hall Collins branding
     st.markdown("""
     <style>
@@ -400,6 +412,16 @@ def main():
         if (include_cover and COVER_AVAILABLE) or (include_instagram and PIL_AVAILABLE):
             cover_photo = st.file_uploader("📸 Property Photo", type=['jpg', 'jpeg', 'png'], 
                                          help="Required for cover page and Instagram posts")
+        
+        # Reset button
+        st.markdown("---")
+        if st.button("🔄 Reset All", help="Clear all generated files and start fresh"):
+            st.session_state.packet_data = None
+            st.session_state.instagram_files = []
+            st.session_state.packet_filename = ""
+            st.session_state.processing_complete = False
+            st.session_state.packet_summary = ""
+            st.rerun()
     
     # Main content area
     col1, col2 = st.columns([1, 1])
@@ -423,6 +445,45 @@ def main():
     
     with col2:
         st.markdown("### 🔧 Processing")
+        
+        # Show persistent results if available
+        if st.session_state.processing_complete:
+            st.success("✅ Files ready for download!")
+            
+            # Create columns for download buttons
+            download_col1, download_col2 = st.columns(2)
+            
+            # PDF download button
+            if st.session_state.packet_data:
+                with download_col1:
+                    st.download_button(
+                        label="📥 Download Listing Packet",
+                        data=st.session_state.packet_data,
+                        file_name=st.session_state.packet_filename,
+                        mime="application/pdf",
+                        use_container_width=True
+                    )
+            
+            # Instagram posts download buttons
+            if st.session_state.instagram_files:
+                with download_col2:
+                    st.success(f"📱 {len(st.session_state.instagram_files)} Instagram posts ready!")
+                
+                for instagram_file in st.session_state.instagram_files:
+                    st.download_button(
+                        label=f"📱 Download {instagram_file['type']} Post",
+                        data=instagram_file['data'],
+                        file_name=instagram_file['name'],
+                        mime="image/png",
+                        key=f"persistent_download_{instagram_file['type']}",
+                        use_container_width=True
+                    )
+            
+            # Show summary
+            if st.session_state.packet_summary:
+                st.info(st.session_state.packet_summary)
+            
+            st.markdown("---")
         
         if uploaded_files:
             if st.button("🔗 Create Listing Packet", type="primary"):
@@ -475,51 +536,33 @@ def main():
                                 instagram_files = create_instagram_posts(cover_photo_bytes, street_address, city_state)
                         
                         if packet_bytes:
-                            # Create filename
+                            # Store results in session state
                             if street_address:
                                 filename = f"{street_address} - Packet.pdf"
                             else:
                                 filename = "Listing Packet.pdf"
                             
-                            # Provide download button for packet
-                            st.success("✅ Packet created successfully!")
+                            st.session_state.packet_data = packet_bytes
+                            st.session_state.packet_filename = filename
+                            st.session_state.instagram_files = instagram_files
                             
-                            col1, col2 = st.columns(2)
-                            
-                            with col1:
-                                st.download_button(
-                                    label="📥 Download Listing Packet",
-                                    data=packet_bytes,
-                                    file_name=filename,
-                                    mime="application/pdf"
-                                )
-                            
-                            # Provide download buttons for Instagram posts
-                            if instagram_files:
-                                with col2:
-                                    st.success(f"📱 Created {len(instagram_files)} Instagram posts!")
-                                
-                                for instagram_file in instagram_files:
-                                    st.download_button(
-                                        label=f"📱 Download {instagram_file['type']} Post",
-                                        data=instagram_file['data'],
-                                        file_name=instagram_file['name'],
-                                        mime="image/png",
-                                        key=f"download_{instagram_file['type']}"
-                                    )
-                            
-                            # Show summary
-                            st.info(f"""
+                            # Create summary
+                            summary = f"""
                             **Packet Summary:**
                             • Combined {len(pdf_files)} files
                             • Cover page: {'✅ Included' if include_cover and cover_photo_bytes else '❌ Not included'}
                             • Instagram posts: {'✅ Created ' + str(len(instagram_files)) + ' posts' if instagram_files else '❌ Not created'}
                             • Property: {street_address or 'No address specified'}
                             • Location: {city_state or 'No location specified'}
-                            """)
+                            """
+                            st.session_state.packet_summary = summary
+                            st.session_state.processing_complete = True
+                            
+                            # Rerun to show persistent download buttons
+                            st.rerun()
                     else:
                         st.error("No valid PDF files found to process")
-        else:
+        elif not st.session_state.processing_complete:
             st.info("👆 Upload files to get started")
     
     # Features section
