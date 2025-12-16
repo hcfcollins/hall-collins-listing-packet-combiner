@@ -271,13 +271,13 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                     try:
                         draw = ImageDraw.Draw(instagram_post)
                         
-                        # Try to load a font - large size for Instagram visibility
+                        # Try to load a font - size 59 to match original app
                         try:
-                            # Try to use a system font - size 80 for good Instagram visibility
-                            font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 80)
+                            # Try to use a system font - size 59 matches original desktop app
+                            font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 59)
                         except:
                             try:
-                                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 80)
+                                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 59)
                             except:
                                 # Fall back to default font
                                 font = ImageFont.load_default()
@@ -306,12 +306,12 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                         # Add city/state below street address if available
                         if city_state:
                             try:
-                                # Use larger font for city/state text
+                                # Use font size 40 to match original app
                                 try:
-                                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 60)  # Good size for Instagram
+                                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 40)  # Matches original desktop app
                                 except:
                                     try:
-                                        small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 60)  # Good size for Instagram
+                                        small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 40)  # Matches original desktop app
                                     except:
                                         small_font = font  # Use same font if others fail
                                 
@@ -610,44 +610,6 @@ def main():
                 st.rerun()
             
             st.markdown("---")
-        
-        # Instagram-Only Option (always show if PIL available)
-        if PIL_AVAILABLE and not st.session_state.processing_complete:
-            st.markdown("#### 📱 Create Instagram Posts")
-            
-            # Check what's needed for Instagram posts
-            has_photo = cover_photo is not None
-            has_address = street_address and city_state
-            
-            if has_photo and has_address:
-                if st.button("🎨 Create Instagram Posts Only", type="secondary", use_container_width=True):
-                    with st.spinner("Creating Instagram posts..."):
-                        cover_photo_bytes = cover_photo.getvalue()
-                        instagram_files = create_instagram_posts(cover_photo_bytes, street_address, city_state)
-                        
-                        if instagram_files:
-                            # Store only Instagram results in session state
-                            st.session_state.packet_data = None
-                            st.session_state.packet_filename = ""
-                            st.session_state.instagram_files = instagram_files
-                            
-                            # Create summary for Instagram only
-                            summary = f"""
-                            **Instagram Posts Created:**
-                            • Created {len(instagram_files)} social media posts
-                            • Property: {street_address}
-                            • Location: {city_state}
-                            • Posts: New Listing, Under Contract, Sold
-                            """
-                            st.session_state.packet_summary = summary
-                            st.session_state.processing_complete = True
-                            
-                            # Rerun to show download buttons
-                            st.rerun()
-                        else:
-                            st.error("Could not create Instagram posts")
-            else:
-                pass  # User needs photo and address
         
         # PDF Packet Creation
         if uploaded_files and not st.session_state.processing_complete:
