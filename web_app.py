@@ -168,9 +168,13 @@ def create_packet(pdf_files, street_address, city_state, cover_photo_bytes, incl
         
         # Add all PDFs
         for pdf_file in pdf_files:
-            pdf_reader = PyPDF2.PdfReader(BytesIO(pdf_file['content']))
-            for page in pdf_reader.pages:
-                merger.append(page)
+            try:
+                # Create a BytesIO object from the PDF content
+                pdf_stream = BytesIO(pdf_file['content'])
+                merger.append(pdf_stream)
+            except Exception as e:
+                st.warning(f"Could not process {pdf_file['name']}: {e}")
+                continue
         
         # Create output
         output_buffer = BytesIO()
