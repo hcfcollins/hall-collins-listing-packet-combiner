@@ -90,21 +90,21 @@ def create_cover_page(photo_bytes, street_address, city_state, output_path):
         # Add Hall Collins branding
         c.setFillColor(colors.HexColor('#2C3E50'))
         c.setFont("Helvetica-Bold", 24)
-        c.drawCentredText(page_width / 2, 1.5 * inch, "HALL COLLINS")
+        c.drawCentredString(page_width / 2, 1.5 * inch, "HALL COLLINS")
         
         c.setFillColor(colors.HexColor('#E91E63'))
         c.setFont("Helvetica-Bold", 16)
-        c.drawCentredText(page_width / 2, 1.2 * inch, "REAL ESTATE GROUP")
+        c.drawCentredString(page_width / 2, 1.2 * inch, "REAL ESTATE GROUP")
         
         # Add property address
         if street_address:
             c.setFillColor(colors.black)
             c.setFont("Helvetica-Bold", 18)
-            c.drawCentredText(page_width / 2, 0.8 * inch, street_address)
+            c.drawCentredString(page_width / 2, 0.8 * inch, street_address)
         
         if city_state:
             c.setFont("Helvetica", 14)
-            c.drawCentredText(page_width / 2, 0.5 * inch, city_state)
+            c.drawCentredString(page_width / 2, 0.5 * inch, city_state)
         
         c.save()
         return True
