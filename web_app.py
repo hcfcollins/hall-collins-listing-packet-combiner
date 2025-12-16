@@ -271,13 +271,13 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                     try:
                         draw = ImageDraw.Draw(instagram_post)
                         
-                        # Try to load a font - increased size for better visibility
+                        # Try to load a font - optimized size for Instagram visibility and fit
                         try:
-                            # Try to use a system font - size 120 for much better visibility on Instagram
-                            font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 120)
+                            # Try to use a system font - size 100 for good visibility that fits most addresses
+                            font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 100)
                         except:
                             try:
-                                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 120)
+                                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 100)
                             except:
                                 # Fall back to default font
                                 font = ImageFont.load_default()
@@ -306,12 +306,12 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                         # Add city/state below street address if available
                         if city_state:
                             try:
-                                # Use larger font for city/state - increased for better visibility
+                                # Use proportionally sized font for city/state
                                 try:
-                                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 90)  # Much larger for visibility
+                                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 80)  # Proportional to main font
                                 except:
                                     try:
-                                        small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 90)  # Much larger for visibility
+                                        small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 80)  # Proportional to main font
                                     except:
                                         small_font = font  # Use same font if others fail
                                 
@@ -328,7 +328,7 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                                 else:
                                     city_x_final = text_x
                                 
-                                city_position = (city_x_final, text_y + 120)  # Increased spacing for larger fonts
+                                city_position = (city_x_final, text_y + 100)  # Adjusted spacing for proportional fonts
                                 draw.text(city_position, city_state_upper, fill=text_color, font=small_font)
                             except Exception as city_e:
                                 st.warning(f"Could not add city/state text: {city_e}")
@@ -526,9 +526,9 @@ def main():
         
         # Property photo upload
         cover_photo = None
-        if (include_cover and COVER_AVAILABLE) or (include_instagram and PIL_AVAILABLE):
+        if (include_cover and COVER_AVAILABLE) or (include_instagram and PIL_AVAILABLE) or PIL_AVAILABLE:
             cover_photo = st.file_uploader("📸 Property Photo", type=['jpg', 'jpeg', 'png'], 
-                                         help="Required for cover page and Instagram posts")
+                                         help="Required for cover page and Instagram posts. Can create Instagram posts without uploading documents.")
         
         # Reset button
         st.markdown("---")
@@ -679,8 +679,42 @@ def main():
                             st.rerun()
                     else:
                         st.error("No valid PDF files found to process")
+        
+        # Standalone Instagram Posts option
+        elif cover_photo and street_address and city_state and PIL_AVAILABLE:
+            st.markdown("#### 📱 Create Instagram Posts Only")
+            if st.button("🎨 Create Instagram Posts", type="secondary"):
+                with st.spinner("Creating Instagram posts..."):
+                    cover_photo_bytes = cover_photo.getvalue()
+                    instagram_files = create_instagram_posts(cover_photo_bytes, street_address, city_state)
+                    
+                    if instagram_files:
+                        # Store only Instagram results in session state
+                        st.session_state.packet_data = None
+                        st.session_state.packet_filename = ""
+                        st.session_state.instagram_files = instagram_files
+                        
+                        # Create summary for Instagram only
+                        summary = f"""
+                        **Instagram Posts Created:**
+                        • Created {len(instagram_files)} social media posts
+                        • Property: {street_address}
+                        • Location: {city_state}
+                        • Posts: New Listing, Under Contract, Sold
+                        """
+                        st.session_state.packet_summary = summary
+                        st.session_state.processing_complete = True
+                        
+                        # Rerun to show download buttons
+                        st.rerun()
+                    else:
+                        st.error("Could not create Instagram posts")
+        
         elif not st.session_state.processing_complete:
-            st.info("👆 Upload files to get started")
+            if cover_photo and PIL_AVAILABLE:
+                st.info("📱 Enter address information above to create Instagram posts, or upload files to create a full listing packet")
+            else:
+                st.info("👆 Upload files to get started")
     
     # Features section
     st.markdown("---")
