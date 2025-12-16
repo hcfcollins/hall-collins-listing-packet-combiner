@@ -73,6 +73,9 @@ tmp/
 !templates/*.png
 *.log
 
+# Specific large files to exclude
+1) HC -  (2).pdf
+
 # Test files
 test_*
 
