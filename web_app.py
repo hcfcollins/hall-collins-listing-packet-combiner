@@ -600,6 +600,15 @@ def main():
             if st.session_state.packet_summary:
                 st.info(st.session_state.packet_summary)
             
+            # Add reprocess button for users who want to make changes
+            if st.button("🔄 Create New Files", help="Clear results and start over with new files or settings"):
+                st.session_state.packet_data = None
+                st.session_state.instagram_files = []
+                st.session_state.packet_filename = ""
+                st.session_state.processing_complete = False
+                st.session_state.packet_summary = ""
+                st.rerun()
+            
             st.markdown("---")
         
         # Instagram-Only Option (always show if PIL available)
@@ -638,14 +647,7 @@ def main():
                         else:
                             st.error("Could not create Instagram posts")
             else:
-                # Show what's missing
-                st.info("� **To create Instagram posts:**")
-                if not has_photo:
-                    st.write("• Upload a property photo in the sidebar")
-                if not has_address:
-                    st.write("• Enter street address and city/state in the sidebar")
-                if has_photo or has_address:
-                    st.write("• Then this button will become available!")
+                pass  # User needs photo and address
         
         # PDF Packet Creation
         if uploaded_files and not st.session_state.processing_complete:
