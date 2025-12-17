@@ -18,6 +18,7 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
+INSTAGRAM_VERSION = "2.0"  # Increment this when Instagram code changes
 
 # Test ReportLab
 try:
@@ -444,6 +445,16 @@ def main():
         st.session_state.processing_complete = False
     if 'packet_summary' not in st.session_state:
         st.session_state.packet_summary = ""
+    if 'instagram_version' not in st.session_state:
+        st.session_state.instagram_version = ""
+    
+    # Check if Instagram code has been updated - force regeneration if so
+    if st.session_state.instagram_version != INSTAGRAM_VERSION:
+        if st.session_state.instagram_files:  # Only clear if there were Instagram files
+            st.session_state.instagram_files = []
+            st.session_state.processing_complete = False
+            st.session_state.packet_summary = ""
+        st.session_state.instagram_version = INSTAGRAM_VERSION
     
     # Custom CSS for Hall Collins branding
     st.markdown("""
@@ -566,6 +577,10 @@ def main():
         # Show persistent results if available
         if st.session_state.processing_complete:
             st.success("✅ Files ready for download!")
+            
+            # Show version update warning if applicable
+            if st.session_state.instagram_files and st.session_state.instagram_version != INSTAGRAM_VERSION:
+                st.warning("📱 Instagram posts updated! Click 'Create New Files' below to regenerate with improved fonts.")
             
             # Create columns for download buttons
             download_col1, download_col2 = st.columns(2)
