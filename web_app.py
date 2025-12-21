@@ -26,7 +26,7 @@ UPDATE_NOTES = "Fixed cover image scaling"  # Brief note about what was updated
 VERSION_HISTORY = {
     "2.1.1": "Fixed cover image scaling - Photos now maintain aspect ratio and fit properly",
     "2.1.0": "Added PDF compression and version tracking system", 
-    "2.0.0": "Complete web application with agram posts, cover pages, and compression",
+    "2.0.0": "Complete web application with Instagram posts, cover pages, and compression",
     "1.0.0": "Initial desktop application with basic PDF combining functionality"
 }
 
