@@ -19,6 +19,8 @@ COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
 INSTAGRAM_VERSION = "2.0"  # Increment this when Instagram code changes
+APP_VERSION = "2.1.0"  # Main app version
+LAST_UPDATED = "December 21, 2025 - 2:30 PM EST"  # Update this when making changes
 
 # Test ReportLab
 try:
@@ -556,6 +558,14 @@ def main():
     
     st.markdown('<p class="sub-header">Professional Real Estate Listing Packet Creator</p>', unsafe_allow_html=True)
     
+    # Version information
+    st.markdown(f"""
+    <div style="text-align: center; color: #666; font-size: 0.8rem; margin-bottom: 1rem; padding: 0.5rem; background-color: #f8f9fa; border-radius: 10px;">
+        <strong>Version {APP_VERSION}</strong> • Last Updated: {LAST_UPDATED}
+        <br><em>Refresh your browser to get the latest updates</em>
+    </div>
+    """, unsafe_allow_html=True)
+    
     # Sidebar for controls
     with st.sidebar:
         st.markdown("### 📋 Packet Settings")
@@ -798,22 +808,22 @@ def main():
     with col1:
         st.markdown("**📄 PDF Combining**\nMerge multiple PDFs into one professional packet")
     with col2:
-        st.markdown("**📁 ZIP Support**\nAutomatically extracts PDFs from ZIP files")
+        st.markdown("**�️ PDF Compression**\nReduces file sizes under 20MB for easy sharing")
     with col3:
-        st.markdown("**🖼️ JPG to PDF**\nConvert JPG images to PDF format")
+        st.markdown("**� ZIP Support**\nAutomatically extracts PDFs from ZIP files")
     with col4:
-        st.markdown("**🏠 Custom Covers**\nAdd branded cover pages with property photos")
+        st.markdown("**🖼️ JPG to PDF**\nConvert JPG images to PDF format")
     
     # Second row of features
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.markdown("**📱 Instagram Posts**\nCreate 3 social media posts (New, Under Contract, Sold)")
+        st.markdown("**🏠 Custom Covers**\nAdd branded cover pages with property photos")
     with col2:
-        st.markdown("**🎨 Hall Collins Branding**\nProfessional templates with company colors")
+        st.markdown("**📱 Instagram Posts**\nCreate 3 social media posts (New, Under Contract, Sold)")
     with col3:
-        st.markdown("**☁️ Web Based**\nNo software installation required")
+        st.markdown("**🎨 Hall Collins Branding**\nProfessional templates with company colors")
     with col4:
-        st.markdown("**📱 Mobile Ready**\nWorks on phones, tablets, and computers")
+        st.markdown("**☁️ Web Based**\nNo software installation required")
     
     # Footer
     st.markdown("---")
