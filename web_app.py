@@ -794,9 +794,9 @@ def main():
                         if packet_bytes:
                             # Store results in session state
                             if street_address:
-                                filename = f"{street_address} - Packet.pdf"
+                                filename = f"1) {street_address} - Packet.pdf"
                             else:
-                                filename = "Listing Packet.pdf"
+                                filename = "1) Listing Packet.pdf"
                             
                             st.session_state.packet_data = packet_bytes
                             st.session_state.packet_filename = filename
