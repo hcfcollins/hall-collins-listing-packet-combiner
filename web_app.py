@@ -22,6 +22,14 @@ INSTAGRAM_VERSION = "2.0"  # Increment this when Instagram code changes
 APP_VERSION = "2.1.1"  # Main app version
 UPDATE_NOTES = "Fixed cover image scaling"  # Brief note about what was updated
 
+# Version history for dropdown
+VERSION_HISTORY = {
+    "2.1.1": "Fixed cover image scaling - Photos now maintain aspect ratio and fit properly",
+    "2.1.0": "Added PDF compression and version tracking system",
+    "2.0.0": "Complete web application with Instagram posts, cover pages, and compression",
+    "1.0.0": "Initial desktop application with basic PDF combining functionality"
+}
+
 # Test ReportLab
 try:
     from reportlab.pdfgen import canvas
@@ -882,6 +890,15 @@ def main():
         Version {APP_VERSION} • {UPDATE_NOTES}
     </div>
     """, unsafe_allow_html=True)
+    
+    # Version history dropdown
+    with st.expander("📋 Version History", expanded=False):
+        st.markdown("### Release Notes")
+        for version, notes in VERSION_HISTORY.items():
+            if version == APP_VERSION:
+                st.markdown(f"**{version}** (Current): {notes}")
+            else:
+                st.markdown(f"**{version}**: {notes}")
     
     st.markdown(
         "<div style='text-align: center; color: #666; font-size: 0.9rem;'>"
