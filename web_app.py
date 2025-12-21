@@ -26,7 +26,7 @@ UPDATE_NOTES = "Fixed cover image scaling"  # Brief note about what was updated
 VERSION_HISTORY = {
     "2.1.1": "Fixed cover image scaling - Photos now maintain aspect ratio and fit properly",
     "2.1.0": "Added PDF compression and version tracking system",
-    "2.0.0": "Complete web application with Instagram posts, cover pages, and compression",
+    "2.0.0": "Complete web application with    # Version information at bottomover pages, and compression",
     "1.0.0": "Initial desktop application with basic PDF combining functionality"
 }
 
@@ -547,11 +547,11 @@ def main():
     st.markdown("""
     <style>
     .main-header {
-        color: #2C3E50;
+        color: #E91E63;
         text-align: center;
-        font-size: 2.5rem;
+        font-size: 2rem;
         font-weight: bold;
-        margin-bottom: 0.5rem;
+        margin-bottom: 1rem;
         margin-top: 0;
     }
     .sub-header {
@@ -599,8 +599,6 @@ def main():
     else:
         # Fallback to text-only header
         st.markdown('<h1 class="main-header">🏡 Hall Collins Listing Packet Combiner</h1>', unsafe_allow_html=True)
-    
-    st.markdown('<p class="sub-header">Professional Real Estate Listing Packet Creator</p>', unsafe_allow_html=True)
     
     # Sidebar for controls
     with st.sidebar:
@@ -859,8 +857,6 @@ def main():
     st.markdown("---")
     
     # Version information at bottom
-    
-    col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown("**📄 PDF Combining**\nMerge multiple PDFs into one professional packet")
     with col2:
@@ -869,20 +865,7 @@ def main():
         st.markdown("**� ZIP Support**\nAutomatically extracts PDFs from ZIP files")
     with col4:
         st.markdown("**🖼️ JPG to PDF**\nConvert JPG images to PDF format")
-    
-    # Second row of features
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.markdown("**🏠 Custom Covers**\nAdd branded cover pages with property photos")
-    with col2:
-        st.markdown("**📱 Instagram Posts**\nCreate 3 social media posts (New, Under Contract, Sold)")
-    with col3:
-        st.markdown("**🎨 Hall Collins Branding**\nProfessional templates with company colors")
-    with col4:
-        st.markdown("**☁️ Web Based**\nNo software installation required")
-    
-    # Footer
-    st.markdown("---")
+
     
     # Version information at bottom
     st.markdown(f"""
