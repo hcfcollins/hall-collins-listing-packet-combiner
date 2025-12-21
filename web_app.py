@@ -19,8 +19,8 @@ COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
 INSTAGRAM_VERSION = "2.0"  # Increment this when Instagram code changes
-APP_VERSION = "2.1.1"  # Main app version - Fixed cover image scaling
-LAST_UPDATED = "December 21, 2025 - 4:00 PM EST"  # Update this when making changes
+APP_VERSION = "2.1.1"  # Main app version
+UPDATE_NOTES = "Fixed cover image scaling"  # Brief note about what was updated
 
 # Test ReportLab
 try:
@@ -594,14 +594,6 @@ def main():
     
     st.markdown('<p class="sub-header">Professional Real Estate Listing Packet Creator</p>', unsafe_allow_html=True)
     
-    # Version information
-    st.markdown(f"""
-    <div style="text-align: center; color: #666; font-size: 0.8rem; margin-bottom: 1rem; padding: 0.5rem; background-color: #f8f9fa; border-radius: 10px;">
-        <strong>Version {APP_VERSION}</strong> • Last Updated: {LAST_UPDATED}
-        <br><em>Refresh your browser to get the latest updates</em>
-    </div>
-    """, unsafe_allow_html=True)
-    
     # Sidebar for controls
     with st.sidebar:
         st.markdown("### 📋 Packet Settings")
@@ -863,6 +855,14 @@ def main():
     
     # Footer
     st.markdown("---")
+    
+    # Version information at bottom
+    st.markdown(f"""
+    <div style="text-align: center; color: #999; font-size: 0.75rem; margin-bottom: 0.5rem;">
+        Version {APP_VERSION} • {UPDATE_NOTES}
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.markdown(
         "<div style='text-align: center; color: #666; font-size: 0.9rem;'>"
         "Hall Collins Real Estate Group • Professional Listing Packet Creator"
