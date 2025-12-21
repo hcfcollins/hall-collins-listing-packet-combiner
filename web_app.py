@@ -25,8 +25,8 @@ UPDATE_NOTES = "Fixed cover image scaling"  # Brief note about what was updated
 # Version history for dropdown
 VERSION_HISTORY = {
     "2.1.1": "Fixed cover image scaling - Photos now maintain aspect ratio and fit properly",
-    "2.1.0": "Added PDF compression and version tracking system",
-    "2.0.0": "Complete web application with    # Version information at bottomover pages, and compression",
+    "2.1.0": "Added PDF compression and version tracking system", 
+    "2.0.0": "Complete web application with agram posts, cover pages, and compression",
     "1.0.0": "Initial desktop application with basic PDF combining functionality"
 }
 
@@ -857,14 +857,12 @@ def main():
     st.markdown("---")
     
     # Version information at bottom
-    with col1:
-        st.markdown("**📄 PDF Combining**\nMerge multiple PDFs into one professional packet")
+
     with col2:
         st.markdown("**�️ PDF Compression**\nReduces file sizes under 20MB for easy sharing")
     with col3:
         st.markdown("**� ZIP Support**\nAutomatically extracts PDFs from ZIP files")
-    with col4:
-        st.markdown("**🖼️ JPG to PDF**\nConvert JPG images to PDF format")
+
 
     
     # Version information at bottom
