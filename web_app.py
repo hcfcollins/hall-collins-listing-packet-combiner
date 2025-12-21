@@ -378,7 +378,42 @@ def convert_jpg_to_pdf(jpg_bytes, filename):
         st.error(f"Error converting JPG to PDF: {e}")
         return None
 
-def create_packet(pdf_files, street_address, city_state, cover_photo_bytes, include_cover):
+def compress_pdf(pdf_bytes, target_size_mb=20):
+    """Compress PDF to reduce file size"""
+    try:
+        from PyPDF2 import PdfReader, PdfWriter
+        
+        # Read the PDF
+        reader = PdfReader(BytesIO(pdf_bytes))
+        writer = PdfWriter()
+        
+        # Add all pages with compression
+        for page in reader.pages:
+            # Compress page content
+            page.compress_content_streams()
+            writer.add_page(page)
+        
+        # Set compression level
+        writer.add_metadata(reader.metadata)
+        
+        # Write compressed PDF
+        output_buffer = BytesIO()
+        writer.write(output_buffer)
+        compressed_bytes = output_buffer.getvalue()
+        
+        # Check if we achieved target size
+        original_size_mb = len(pdf_bytes) / (1024 * 1024)
+        compressed_size_mb = len(compressed_bytes) / (1024 * 1024)
+        
+        st.info(f"📊 PDF Compression: {original_size_mb:.1f} MB → {compressed_size_mb:.1f} MB ({(1 - compressed_size_mb/original_size_mb)*100:.1f}% reduction)")
+        
+        return compressed_bytes
+        
+    except Exception as e:
+        st.warning(f"Could not compress PDF: {e}. Using original file.")
+        return pdf_bytes
+
+def create_packet(pdf_files, street_address, city_state, cover_photo_bytes, include_cover, compress_pdf_option=True):
     """Create the final PDF packet"""
     try:
         merger = PdfMerger()
@@ -406,7 +441,13 @@ def create_packet(pdf_files, street_address, city_state, cover_photo_bytes, incl
         merger.write(output_buffer)
         merger.close()
         
-        return output_buffer.getvalue()
+        pdf_bytes = output_buffer.getvalue()
+        
+        # Apply compression if requested
+        if compress_pdf_option:
+            pdf_bytes = compress_pdf(pdf_bytes)
+        
+        return pdf_bytes
         
     except Exception as e:
         st.error(f"Error creating packet: {e}")
@@ -534,6 +575,12 @@ def main():
             st.warning("⚠️ Instagram posts require Pillow library.")
         elif include_instagram:
             st.info("📸 Will create 3 Instagram posts: New Listing, Under Contract, Sold")
+        
+        # PDF compression option
+        compress_pdf_option = st.checkbox("🗜️ Compress PDF Files", value=True, 
+                                         help="Reduces file size for easier sharing. Recommended for files over 20MB.")
+        if compress_pdf_option:
+            st.info("📉 Will compress PDFs to reduce file size")
         
         # Property photo upload
         cover_photo = None
@@ -669,7 +716,8 @@ def main():
                             street_address, 
                             city_state, 
                             cover_photo_bytes, 
-                            include_cover
+                            include_cover,
+                            compress_pdf_option
                         )
                         
                         # Create Instagram posts if requested

@@ -12,6 +12,54 @@ import shutil
 from PyPDF2 import PdfMerger
 import PyPDF2
 
+def compress_pdf_desktop(pdf_path, target_size_mb=20):
+    """Compress PDF to reduce file size for desktop app"""
+    try:
+        from PyPDF2 import PdfReader, PdfWriter
+        
+        # Read the PDF
+        reader = PdfReader(pdf_path)
+        writer = PdfWriter()
+        
+        # Add all pages with compression
+        for page in reader.pages:
+            # Compress page content
+            page.compress_content_streams()
+            writer.add_page(page)
+        
+        # Set compression level
+        writer.add_metadata(reader.metadata)
+        
+        # Create temporary compressed file
+        temp_path = pdf_path.replace('.pdf', '_compressed.pdf')
+        
+        # Write compressed PDF
+        with open(temp_path, 'wb') as output_file:
+            writer.write(output_file)
+        
+        # Check file sizes
+        original_size_mb = os.path.getsize(pdf_path) / (1024 * 1024)
+        compressed_size_mb = os.path.getsize(temp_path) / (1024 * 1024)
+        
+        # Replace original with compressed if it's smaller
+        if compressed_size_mb < original_size_mb:
+            os.replace(temp_path, pdf_path)
+            print(f"DEBUG: PDF Compression: {original_size_mb:.1f} MB → {compressed_size_mb:.1f} MB ({(1 - compressed_size_mb/original_size_mb)*100:.1f}% reduction)")
+            return True
+        else:
+            # Remove temp file if compression didn't help
+            os.unlink(temp_path)
+            print(f"DEBUG: Compression didn't reduce size, keeping original")
+            return False
+        
+    except Exception as e:
+        print(f"DEBUG: Could not compress PDF: {e}. Using original file.")
+        # Clean up temp file if it exists
+        temp_path = pdf_path.replace('.pdf', '_compressed.pdf')
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
+        return False
+
 # Additional imports for cover page with enhanced error handling
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
@@ -725,6 +773,10 @@ def create_packet():
                 raise Exception(f"Both PDF creation methods failed. Original error: {write_error}. Alternative error: {alt_error}")
         
         merger.close()
+        
+        # Compress PDF to reduce file size
+        print("DEBUG: Attempting PDF compression...")
+        compress_pdf_desktop(output_path)
         
         # Create Instagram posts if requested
         instagram_files = []
