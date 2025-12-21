@@ -19,11 +19,15 @@ COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
 INSTAGRAM_VERSION = "2.0"  # Increment this when Instagram code changes
-APP_VERSION = "2.1.1"  # Main app version
-UPDATE_NOTES = "Fixed cover image scaling"  # Brief note about what was updated
+APP_VERSION = "2.1.5"  # Main app version
+UPDATE_NOTES = "Fixed photo upload conditional visibility - now properly hides when not needed"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.1.5": "Fixed photo upload conditional visibility - now properly hides when neither cover page nor Instagram posts are selected",
+    "2.1.4": "Reorganized photo upload section - moved to top and made conditionally visible based on selected features",
+    "2.1.3": "Moved Instagram-only button to packet settings for better workflow organization",
+    "2.1.2": "Added '1)' prefix to packet filenames for better organization and sorting", 
     "2.1.1": "Fixed cover image scaling - Photos now maintain aspect ratio and fit properly",
     "2.1.0": "Added PDF compression and version tracking system", 
     "2.0.0": "Complete web application with    # Version information at bottomcover pages, and compression",
@@ -641,24 +645,24 @@ def main():
             st.warning("⚠️ Cover page feature requires additional libraries. Install reportlab and Pillow.")
     
     with settings_col2:
-        # Instagram posts option
+        # Instagram posts option (defined first so it can be used in conditional logic)
         include_instagram = st.checkbox("📱 Create Instagram Posts", value=False, disabled=not PIL_AVAILABLE)
         if not PIL_AVAILABLE:
             st.warning("⚠️ Instagram posts require Pillow library.")
         elif include_instagram:
             st.info("📸 Will create 3 Instagram posts: New Listing, Under Contract, Sold")
         
+        # Property photo upload - shown only when cover page or Instagram posts are needed
+        cover_photo = None
+        if (include_cover and COVER_AVAILABLE) or include_instagram:
+            cover_photo = st.file_uploader("📸 Property Photo", type=['jpg', 'jpeg', 'png'], 
+                                         help="Required for cover page and Instagram posts. Can create Instagram posts without uploading documents.")
+        
         # PDF compression option
         compress_pdf_option = st.checkbox("🗜️ Compress PDF Files", value=True, 
                                          help="Reduces file size for easier sharing. Recommended for files over 20MB.")
         if compress_pdf_option:
             st.info("📉 Will compress PDFs to reduce file size")
-        
-        # Property photo upload
-        cover_photo = None
-        if (include_cover and COVER_AVAILABLE) or (include_instagram and PIL_AVAILABLE) or PIL_AVAILABLE:
-            cover_photo = st.file_uploader("📸 Property Photo", type=['jpg', 'jpeg', 'png'], 
-                                         help="Required for cover page and Instagram posts. Can create Instagram posts without uploading documents.")
     
     st.markdown("---")
     
@@ -682,6 +686,37 @@ def main():
             for file in uploaded_files:
                 file_size = len(file.getvalue()) / 1024  # KB
                 st.write(f"• {file.name} ({file_size:.1f} KB)")
+        
+        # Instagram-only button (when photo and address are provided but no files uploaded)
+        elif cover_photo and street_address and city_state and PIL_AVAILABLE:
+            st.markdown("#### 📱 Create Instagram Posts Only")
+            st.info("📸 Upload property photo and enter address to create social media posts without documents")
+            if st.button("🎨 Create Instagram Posts", type="secondary", use_container_width=True):
+                with st.spinner("Creating Instagram posts..."):
+                    cover_photo_bytes = cover_photo.getvalue()
+                    instagram_files = create_instagram_posts(cover_photo_bytes, street_address, city_state)
+                    
+                    if instagram_files:
+                        # Store only Instagram results in session state
+                        st.session_state.packet_data = None
+                        st.session_state.packet_filename = ""
+                        st.session_state.instagram_files = instagram_files
+                        
+                        # Create summary for Instagram only
+                        summary = f"""
+                        **Instagram Posts Created:**
+                        • Created {len(instagram_files)} social media posts
+                        • Property: {street_address}
+                        • Location: {city_state}
+                        • Posts: New Listing, Under Contract, Sold
+                        """
+                        st.session_state.packet_summary = summary
+                        st.session_state.processing_complete = True
+                        
+                        # Rerun to show download buttons
+                        st.rerun()
+                    else:
+                        st.error("Could not create Instagram posts")
     
     with col2:
         st.markdown("### 🔧 Processing")
@@ -818,36 +853,6 @@ def main():
                             st.rerun()
                     else:
                         st.error("No valid PDF files found to process")
-        
-        # Standalone Instagram Posts option
-        elif cover_photo and street_address and city_state and PIL_AVAILABLE:
-            st.markdown("#### 📱 Create Instagram Posts Only")
-            if st.button("🎨 Create Instagram Posts", type="secondary"):
-                with st.spinner("Creating Instagram posts..."):
-                    cover_photo_bytes = cover_photo.getvalue()
-                    instagram_files = create_instagram_posts(cover_photo_bytes, street_address, city_state)
-                    
-                    if instagram_files:
-                        # Store only Instagram results in session state
-                        st.session_state.packet_data = None
-                        st.session_state.packet_filename = ""
-                        st.session_state.instagram_files = instagram_files
-                        
-                        # Create summary for Instagram only
-                        summary = f"""
-                        **Instagram Posts Created:**
-                        • Created {len(instagram_files)} social media posts
-                        • Property: {street_address}
-                        • Location: {city_state}
-                        • Posts: New Listing, Under Contract, Sold
-                        """
-                        st.session_state.packet_summary = summary
-                        st.session_state.processing_complete = True
-                        
-                        # Rerun to show download buttons
-                        st.rerun()
-                    else:
-                        st.error("Could not create Instagram posts")
         
         elif not st.session_state.processing_complete:
             if cover_photo and PIL_AVAILABLE:
