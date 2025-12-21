@@ -625,6 +625,7 @@ def main():
     
     # Main content area
     st.markdown("### 📋 Packet Settings")
+    st.markdown("*Add just the address if you want a regular showing packet. Check the boxes if you want a branded packet for our listing.*")
     
     # Create columns for settings
     settings_col1, settings_col2 = st.columns([1, 1])
