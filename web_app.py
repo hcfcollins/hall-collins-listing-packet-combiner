@@ -19,8 +19,8 @@ COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
 INSTAGRAM_VERSION = "2.0"  # Increment this when Instagram code changes
-APP_VERSION = "2.1.0"  # Main app version
-LAST_UPDATED = "December 21, 2025 - 2:30 PM EST"  # Update this when making changes
+APP_VERSION = "2.1.1"  # Main app version - Fixed cover image scaling
+LAST_UPDATED = "December 21, 2025 - 4:00 PM EST"  # Update this when making changes
 
 # Test ReportLab
 try:
@@ -90,24 +90,60 @@ def create_cover_page(photo_bytes, street_address, city_state, output_path):
         # Add property photo overlay (covers the photo area of the template)
         if photo_bytes:
             temp_photo = tempfile.mktemp(suffix='.jpg')
+            temp_cropped_photo = tempfile.mktemp(suffix='_cropped.jpg')
             try:
                 with open(temp_photo, 'wb') as f:
                     f.write(photo_bytes)
                 
-                # Cover exactly 7.12" from the top of the page (photo area only)
-                photo_width = page_width  # Full page width
-                photo_height = 7.12 * inch  # Exactly 7.12 inches tall
-                photo_x = 0  # Start at absolute left edge
-                photo_y = page_height - photo_height  # Position from top: 11" - 7.12" = 3.88" from bottom
+                # Define target dimensions for photo area
+                target_width = page_width  # Full page width
+                target_height = 7.12 * inch  # Exactly 7.12 inches tall
+                target_aspect = target_width / target_height
                 
-                # Draw photo over the template - covers exactly 7.12" from top
-                c.drawImage(temp_photo, photo_x, photo_y, width=photo_width, height=photo_height)
+                # Load and process the image to maintain aspect ratio
+                if PIL_AVAILABLE:
+                    img = Image.open(temp_photo)
+                    img_width, img_height = img.size
+                    img_aspect = img_width / img_height
+                    
+                    # Determine how to crop the image to fit the target aspect ratio
+                    if img_aspect > target_aspect:
+                        # Image is wider than target - crop the width
+                        new_height = img_height
+                        new_width = int(new_height * target_aspect)
+                        left = (img_width - new_width) // 2
+                        crop_box = (left, 0, left + new_width, new_height)
+                    else:
+                        # Image is taller than target - crop the height
+                        new_width = img_width
+                        new_height = int(new_width / target_aspect)
+                        top = (img_height - new_height) // 2
+                        crop_box = (0, top, new_width, top + new_height)
+                    
+                    # Crop and save the processed image
+                    cropped_img = img.crop(crop_box)
+                    cropped_img.save(temp_cropped_photo, 'JPEG', quality=95)
+                    
+                    # Use the cropped image
+                    final_photo_path = temp_cropped_photo
+                else:
+                    # Fallback to original image if PIL not available
+                    final_photo_path = temp_photo
+                
+                # Position for photo area
+                photo_x = 0  # Start at absolute left edge
+                photo_y = page_height - target_height  # Position from top: 11" - 7.12" = 3.88" from bottom
+                
+                # Draw the properly cropped photo over the template
+                c.drawImage(final_photo_path, photo_x, photo_y, width=target_width, height=target_height)
                 
             except Exception as e:
                 st.warning(f"Could not add photo overlay: {e}")
             finally:
-                if os.path.exists(temp_photo):
-                    os.unlink(temp_photo)
+                # Clean up temporary files
+                for temp_file in [temp_photo, temp_cropped_photo]:
+                    if os.path.exists(temp_file):
+                        os.unlink(temp_file)
         
         # Add Hall Collins white logo overlay on the photo
         logo_overlay_path = "templates/HC_Solid White Logo_Transparent Back.png"
