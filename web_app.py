@@ -624,7 +624,7 @@ def main():
             st.rerun()
     
     # Main content area
-    st.markdown("### 📋 Packet Settings")
+    st.markdown("### 📋 Step 1: Packet Settings")
     st.markdown("*Add just the address if you want a regular showing packet. Check the boxes if you want a branded packet for our listing.*")
     
     # Create columns for settings
@@ -666,7 +666,8 @@ def main():
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        st.markdown("### 📁 Upload Files")
+        st.markdown("### 📁 Step 2: Upload Files")
+        st.markdown("*When selecting files, click them in the order you want them to appear in the packet*")
         
         # File upload
         uploaded_files = st.file_uploader(
