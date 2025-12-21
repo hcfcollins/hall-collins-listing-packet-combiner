@@ -596,8 +596,34 @@ def main():
     
     # Sidebar for controls
     with st.sidebar:
-        st.markdown("### 📋 Packet Settings")
+        st.markdown("### ✨ Features")
         
+        st.markdown("**📄 PDF Combining**\nMerge multiple PDFs into one professional packet")
+        st.markdown("**🗜️ PDF Compression**\nReduces file sizes under 20MB for easy sharing")
+        st.markdown("**📁 ZIP Support**\nAutomatically extracts PDFs from ZIP files")
+        st.markdown("**�️ JPG to PDF**\nConvert JPG images to PDF format")
+        st.markdown("**🏠 Custom Covers**\nAdd branded cover pages with property photos")
+        st.markdown("**📱 Instagram Posts**\nCreate 3 social media posts (New, Under Contract, Sold)")
+        st.markdown("**🎨 Hall Collins Branding**\nProfessional templates with company colors")
+        st.markdown("**☁️ Web Based**\nNo software installation required")
+        
+        # Reset button
+        st.markdown("---")
+        if st.button("🔄 Reset All", help="Clear all generated files and start fresh"):
+            st.session_state.packet_data = None
+            st.session_state.instagram_files = []
+            st.session_state.packet_filename = ""
+            st.session_state.processing_complete = False
+            st.session_state.packet_summary = ""
+            st.rerun()
+    
+    # Main content area
+    st.markdown("### 📋 Packet Settings")
+    
+    # Create columns for settings
+    settings_col1, settings_col2 = st.columns([1, 1])
+    
+    with settings_col1:
         # Address input
         street_address = st.text_input("📍 Street Address", placeholder="123 Main Street")
         city_state = st.text_input("🏙️ City, State", placeholder="Woodstock, VT")
@@ -606,7 +632,8 @@ def main():
         include_cover = st.checkbox("📄 Include Custom Cover Page", value=False, disabled=not COVER_AVAILABLE)
         if not COVER_AVAILABLE:
             st.warning("⚠️ Cover page feature requires additional libraries. Install reportlab and Pillow.")
-        
+    
+    with settings_col2:
         # Instagram posts option
         include_instagram = st.checkbox("📱 Create Instagram Posts", value=False, disabled=not PIL_AVAILABLE)
         if not PIL_AVAILABLE:
@@ -625,18 +652,10 @@ def main():
         if (include_cover and COVER_AVAILABLE) or (include_instagram and PIL_AVAILABLE) or PIL_AVAILABLE:
             cover_photo = st.file_uploader("📸 Property Photo", type=['jpg', 'jpeg', 'png'], 
                                          help="Required for cover page and Instagram posts. Can create Instagram posts without uploading documents.")
-        
-        # Reset button
-        st.markdown("---")
-        if st.button("🔄 Reset All", help="Clear all generated files and start fresh"):
-            st.session_state.packet_data = None
-            st.session_state.instagram_files = []
-            st.session_state.packet_filename = ""
-            st.session_state.processing_complete = False
-            st.session_state.packet_summary = ""
-            st.rerun()
     
-    # Main content area
+    st.markdown("---")
+    
+    # File processing area
     col1, col2 = st.columns([1, 1])
     
     with col1:
@@ -828,9 +847,10 @@ def main():
             else:
                 st.info("👆 Upload files to get started")
     
-    # Features section
+    # Footer
     st.markdown("---")
-    st.markdown("### ✨ Features")
+    
+    # Version information at bottom
     
     col1, col2, col3, col4 = st.columns(4)
     with col1:
