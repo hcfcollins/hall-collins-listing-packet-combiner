@@ -18,12 +18,13 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
-INSTAGRAM_VERSION = "2.0"  # Increment this when Instagram code changes
-APP_VERSION = "2.1.5"  # Main app version
-UPDATE_NOTES = "Fixed photo upload conditional visibility - now properly hides when not needed"  # Brief note about what was updated
+INSTAGRAM_VERSION = "2.1"  # Increment this when Instagram code changes
+APP_VERSION = "2.1.6"  # Main app version
+UPDATE_NOTES = "Increased Instagram post text size for better readability on social media"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.1.6": "Increased Instagram post text size for better readability - street address now 80pt, city/state 60pt",
     "2.1.5": "Fixed photo upload conditional visibility - now properly hides when neither cover page nor Instagram posts are selected",
     "2.1.4": "Reorganized photo upload section - moved to top and made conditionally visible based on selected features",
     "2.1.3": "Moved Instagram-only button to packet settings for better workflow organization",
@@ -322,13 +323,13 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                     try:
                         draw = ImageDraw.Draw(instagram_post)
                         
-                        # Try to load a font - size 59 to match original app
+                        # Try to load a font - increased size for better visibility on social media
                         try:
-                            # Try to use a system font - size 59 matches original desktop app
-                            font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 59)
+                            # Use larger font size for better readability on Instagram
+                            font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 80)
                         except:
                             try:
-                                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 59)
+                                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 80)
                             except:
                                 # Fall back to default font
                                 font = ImageFont.load_default()
@@ -357,12 +358,12 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                         # Add city/state below street address if available
                         if city_state:
                             try:
-                                # Use font size 40 to match original app
+                                # Use larger font size for city/state text
                                 try:
-                                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 40)  # Matches original desktop app
+                                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 60)  # Increased from 40 to 60
                                 except:
                                     try:
-                                        small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 40)  # Matches original desktop app
+                                        small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 60)  # Increased from 40 to 60
                                     except:
                                         small_font = font  # Use same font if others fail
                                 
@@ -379,7 +380,7 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                                 else:
                                     city_x_final = text_x
                                 
-                                city_position = (city_x_final, text_y + 100)  # Adjusted spacing for proportional fonts
+                                city_position = (city_x_final, text_y + 120)  # Increased spacing for larger fonts
                                 draw.text(city_position, city_state_upper, fill=text_color, font=small_font)
                             except Exception as city_e:
                                 st.warning(f"Could not add city/state text: {city_e}")
