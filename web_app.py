@@ -18,12 +18,14 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
-INSTAGRAM_VERSION = "2.1"  # Increment this when Instagram code changes
-APP_VERSION = "2.1.6"  # Main app version
-UPDATE_NOTES = "Increased Instagram post text size for better readability on social media"  # Brief note about what was updated
+INSTAGRAM_VERSION = "2.3"  # Increment this when Instagram code changes
+APP_VERSION = "2.3.0"  # Main app version
+UPDATE_NOTES = "Fixed font consistency across all Instagram post types and reduced text spacing to prevent cutoff"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.3.0": "Fixed font consistency across all Instagram post types and reduced text spacing to prevent cutoff",
+    "2.2.0": "Reverted to original font sizes (59pt/40pt) and added debugging to diagnose font loading issues",
     "2.1.6": "Increased Instagram post text size for better readability - street address now 80pt, city/state 60pt",
     "2.1.5": "Fixed photo upload conditional visibility - now properly hides when neither cover page nor Instagram posts are selected",
     "2.1.4": "Reorganized photo upload section - moved to top and made conditionally visible based on selected features",
@@ -269,6 +271,40 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
     try:
         from PIL import ImageDraw, ImageFont
         
+        # Load fonts once at the beginning for consistency across all posts
+        main_font = None
+        small_font = None
+        main_font_details = ""
+        small_font_details = ""
+        
+        # Load main font (59pt for street address)
+        try:
+            main_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 59)
+            main_font_details = "Times.ttc at 59pt"
+        except Exception as e:
+            try:
+                main_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 59)
+                main_font_details = "Helvetica.ttc at 59pt"
+            except Exception as e2:
+                main_font = ImageFont.load_default()
+                main_font_details = f"Default font (fallback) - Times error: {e}, Helvetica error: {e2}"
+        
+        # Load small font (40pt for city/state)
+        try:
+            small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 40)
+            small_font_details = "Times.ttc at 40pt"
+        except Exception as e:
+            try:
+                small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 40)
+                small_font_details = "Helvetica.ttc at 40pt"
+            except Exception as e2:
+                small_font = main_font  # Use main font as fallback
+                small_font_details = f"Using main font as fallback - Times error: {e}, Helvetica error: {e2}"
+        
+        # Log font loading results once
+        st.success(f"✅ Main font loaded: {main_font_details}")
+        st.success(f"✅ Small font loaded: {small_font_details}")
+        
         for template_file, post_type, text_alignment, text_x, text_y, text_color in templates:
             if not os.path.exists(template_file):
                 st.warning(f"Template not found: {template_file}")
@@ -323,16 +359,9 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                     try:
                         draw = ImageDraw.Draw(instagram_post)
                         
-                        # Try to load a font - increased size for better visibility on social media
-                        try:
-                            # Use larger font size for better readability on Instagram
-                            font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 80)
-                        except:
-                            try:
-                                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 80)
-                            except:
-                                # Fall back to default font
-                                font = ImageFont.load_default()
+                        # Use pre-loaded font
+                        font = main_font
+                        st.info(f"🔍 {post_type} - Using font: {main_font_details}")
                         
                         # Convert street address to uppercase for consistent branding
                         street_address_upper = street_address.upper()
@@ -353,35 +382,34 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                         text_position = (text_x_final, text_y)
                         
                         # Add street address text with specified color
+                        text_bbox = draw.textbbox((0, 0), street_address_upper, font=font)
+                        rendered_text_height = text_bbox[3] - text_bbox[1]
+                        st.info(f"🔍 {post_type} - Street address height: {rendered_text_height}px (expected ~59px for 59pt font)")
                         draw.text(text_position, street_address_upper, fill=text_color, font=font)
                         
                         # Add city/state below street address if available
                         if city_state:
                             try:
-                                # Use larger font size for city/state text
-                                try:
-                                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 60)  # Increased from 40 to 60
-                                except:
-                                    try:
-                                        small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 60)  # Increased from 40 to 60
-                                    except:
-                                        small_font = font  # Use same font if others fail
+                                # Use pre-loaded small font and reduce spacing
+                                city_font = small_font
+                                st.info(f"🔍 {post_type} - Using small font: {small_font_details}")
                                 
                                 # Convert city/state to uppercase for consistent branding
                                 city_state_upper = city_state.upper()
                                 
                                 # Position city/state below street address with same alignment
                                 if text_alignment == "centered_offset":
-                                    city_text_width = draw.textbbox((0, 0), city_state_upper, font=small_font)[2]
+                                    city_text_width = draw.textbbox((0, 0), city_state_upper, font=city_font)[2]
                                     city_x_final = (post_width // 2) - (city_text_width // 2) + text_x
                                 elif text_alignment == "centered":
-                                    city_text_width = draw.textbbox((0, 0), city_state_upper, font=small_font)[2]
+                                    city_text_width = draw.textbbox((0, 0), city_state_upper, font=city_font)[2]
                                     city_x_final = (post_width - city_text_width) // 2  # Perfect center
                                 else:
                                     city_x_final = text_x
                                 
-                                city_position = (city_x_final, text_y + 120)  # Increased spacing for larger fonts
-                                draw.text(city_position, city_state_upper, fill=text_color, font=small_font)
+                                # Reduced spacing from 120 to 70 pixels to prevent cutoff
+                                city_position = (city_x_final, text_y + 70)
+                                draw.text(city_position, city_state_upper, fill=text_color, font=city_font)
                             except Exception as city_e:
                                 st.warning(f"Could not add city/state text: {city_e}")
                         
