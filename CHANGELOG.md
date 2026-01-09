@@ -10,6 +10,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Future feature planning and development
 
+## [2.4.0] - 2026-01-09
+
+### Added
+- 🔄 Refresh button for processing multiple properties without restarting the app
+- 📥 Recent Downloads section for quick file selection from Downloads folder
+- Double-click to select files from recent downloads list
+- Automatic refresh of recent files when starting new property
+
+### Enhanced
+- User workflow improvements for real estate agents handling multiple listings
+- Quick access to recently downloaded files without opening Finder
+- File size display and smart filename truncation in recent downloads
+- Seamless multi-property workflow for busy agents
+
+### Features
+- Recent downloads listbox shows PDF, ZIP, and JPG files
+- Manual refresh button (🔄) to update downloads list
+- File type icons (📄📁📷) for easy file identification
+- Support for files up to Downloads folder capacity
+- Auto-sorting by most recent modification time
+
 ## [2.1.0] - 2026-01-09
 
 ### Added
