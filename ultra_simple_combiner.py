@@ -522,6 +522,166 @@ def convert_jpg_to_pdf(jpg_path, output_path):
         print(f"Error converting JPG to PDF: {e}")
         return False
 
+def get_recent_downloads():
+    """Get recent PDF, ZIP, and JPG files from Downloads folder"""
+    try:
+        downloads_path = os.path.expanduser("~/Downloads")
+        if not os.path.exists(downloads_path):
+            return []
+        
+        # Get all supported files from Downloads
+        supported_extensions = ('.pdf', '.zip', '.jpg', '.jpeg')
+        files = []
+        
+        for filename in os.listdir(downloads_path):
+            if filename.lower().endswith(supported_extensions):
+                filepath = os.path.join(downloads_path, filename)
+                if os.path.isfile(filepath):
+                    # Get file modification time
+                    mtime = os.path.getmtime(filepath)
+                    files.append((filepath, mtime, filename))
+        
+        # Sort by modification time (most recent first) and return top 10
+        files.sort(key=lambda x: x[1], reverse=True)
+        return files[:10]  # Return most recent 10 files
+        
+    except Exception as e:
+        print(f"DEBUG: Error getting recent downloads: {e}")
+        return []
+
+def process_files_from_paths(file_paths):
+    """Process files from a list of file paths (shared logic)"""
+    if not file_paths:
+        return
+    
+    print(f"DEBUG: Processing {len(file_paths)} files")
+    
+    # Show processing status
+    status_label.config(text="Processing files...", fg="blue")
+    root.update_idletasks()
+    
+    # Clear and process files immediately
+    file_listbox.delete(0, tk.END)
+    
+    global all_pdf_paths, temp_dir
+    all_pdf_paths = []
+    
+    # Create temp directory if needed
+    if temp_dir and os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)
+    temp_dir = tempfile.mkdtemp(prefix="listing_packet_")
+    
+    print("DEBUG: Processing files...")
+    
+    for file_path in file_paths:
+        file_name = os.path.basename(file_path)
+        print(f"DEBUG: Processing: {file_name}")
+        
+        # Update UI periodically to prevent freezing
+        root.update_idletasks()
+        
+        if not os.path.exists(file_path):
+            file_listbox.insert(tk.END, f"❌ {file_name} (not found)")
+            continue
+        
+        if file_path.lower().endswith('.zip'):
+            # Process ZIP file
+            try:
+                extracted_pdfs = simple_extract_zip(file_path, temp_dir)
+                if extracted_pdfs:
+                    file_listbox.insert(tk.END, f"📁 {file_name} ({len(extracted_pdfs)} PDFs)")
+                    all_pdf_paths.extend(extracted_pdfs)
+                    for pdf_path in extracted_pdfs:
+                        pdf_name = os.path.basename(pdf_path)
+                        file_listbox.insert(tk.END, f"   📄 {pdf_name}")
+                else:
+                    file_listbox.insert(tk.END, f"⚠️ {file_name} (no PDFs)")
+            except Exception as e:
+                print(f"DEBUG: ZIP error: {str(e)}")
+                file_listbox.insert(tk.END, f"❌ {file_name} (ZIP error)")
+                
+        elif file_path.lower().endswith('.pdf'):
+            # Regular PDF
+            file_listbox.insert(tk.END, f"📄 {file_name}")
+            all_pdf_paths.append(file_path)
+            
+        elif file_path.lower().endswith(('.jpg', '.jpeg')):
+            # Convert JPG to PDF
+            try:
+                if PIL_AVAILABLE:
+                    # Create temp PDF from JPG
+                    jpg_pdf_path = os.path.join(temp_dir, f"{os.path.splitext(file_name)[0]}.pdf")
+                    if convert_jpg_to_pdf(file_path, jpg_pdf_path):
+                        file_listbox.insert(tk.END, f"📷➡️📄 {file_name} (converted)")
+                        all_pdf_paths.append(jpg_pdf_path)
+                    else:
+                        file_listbox.insert(tk.END, f"❌ {file_name} (conversion failed)")
+                else:
+                    file_listbox.insert(tk.END, f"❌ {file_name} (PIL required for JPG)")
+            except Exception as e:
+                print(f"DEBUG: JPG conversion error: {str(e)}")
+                file_listbox.insert(tk.END, f"❌ {file_name} (JPG error)")
+                
+        else:
+            file_listbox.insert(tk.END, f"❌ {file_name} (unsupported)")
+    
+    # Update status
+    if all_pdf_paths:
+        status_label.config(text=f"Ready! {len(all_pdf_paths)} PDFs loaded", fg="green")
+    else:
+        status_label.config(text="No PDFs found", fg="red")
+        
+    print(f"DEBUG: Processing complete. {len(all_pdf_paths)} PDFs ready")
+
+def on_recent_file_select(event):
+    """Handle selection from recent downloads listbox"""
+    selection = recent_downloads_listbox.curselection()
+    if selection:
+        index = selection[0]
+        recent_files = get_recent_downloads()
+        if index < len(recent_files):
+            selected_file_path = recent_files[index][0]
+            # Process just the selected file
+            process_files_from_paths([selected_file_path])
+
+def refresh_recent_downloads():
+    """Refresh the recent downloads list"""
+    recent_downloads_listbox.delete(0, tk.END)
+    recent_files = get_recent_downloads()
+    
+    if not recent_files:
+        recent_downloads_listbox.insert(0, "No recent files found in Downloads")
+        return
+    
+    for filepath, mtime, filename in recent_files:
+        # Get file size for display
+        try:
+            file_size = os.path.getsize(filepath)
+            if file_size > 1024 * 1024:  # MB
+                size_str = f"{file_size / (1024 * 1024):.1f} MB"
+            else:  # KB
+                size_str = f"{file_size / 1024:.0f} KB"
+        except:
+            size_str = "unknown size"
+        
+        # Format display name with file type icon
+        if filename.lower().endswith('.pdf'):
+            icon = "📄"
+        elif filename.lower().endswith('.zip'):
+            icon = "📁"
+        elif filename.lower().endswith(('.jpg', '.jpeg')):
+            icon = "📷"
+        else:
+            icon = "📎"
+        
+        # Truncate long filenames
+        display_name = filename
+        if len(display_name) > 35:
+            display_name = display_name[:32] + "..."
+        
+        display_text = f"{icon} {display_name} ({size_str})"
+        recent_downloads_listbox.insert(tk.END, display_text)
+
 def select_and_process_files():
     """Select and immediately process files without complex GUI updates"""
     print("DEBUG: Starting file selection...")
@@ -548,83 +708,9 @@ def select_and_process_files():
         if not files:
             status_label.config(text="No files selected", fg="red")
             return
-            
-        # Show processing status
-        status_label.config(text="Processing files...", fg="blue")
-        root.update_idletasks()
         
-        # Clear and process files immediately
-        file_listbox.delete(0, tk.END)
-        
-        global all_pdf_paths, temp_dir
-        all_pdf_paths = []
-        
-        # Create temp directory if needed
-        if temp_dir and os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)
-        temp_dir = tempfile.mkdtemp(prefix="listing_packet_")
-        
-        print("DEBUG: Processing files...")
-        
-        for file_path in files:
-            file_name = os.path.basename(file_path)
-            print(f"DEBUG: Processing: {file_name}")
-            
-            # Update UI periodically to prevent freezing
-            root.update_idletasks()
-            
-            if not os.path.exists(file_path):
-                file_listbox.insert(tk.END, f"❌ {file_name} (not found)")
-                continue
-            
-            if file_path.lower().endswith('.zip'):
-                # Process ZIP file
-                try:
-                    extracted_pdfs = simple_extract_zip(file_path, temp_dir)
-                    if extracted_pdfs:
-                        file_listbox.insert(tk.END, f"📁 {file_name} ({len(extracted_pdfs)} PDFs)")
-                        all_pdf_paths.extend(extracted_pdfs)
-                        for pdf_path in extracted_pdfs:
-                            pdf_name = os.path.basename(pdf_path)
-                            file_listbox.insert(tk.END, f"   📄 {pdf_name}")
-                    else:
-                        file_listbox.insert(tk.END, f"⚠️ {file_name} (no PDFs)")
-                except Exception as e:
-                    print(f"DEBUG: ZIP error: {str(e)}")
-                    file_listbox.insert(tk.END, f"❌ {file_name} (ZIP error)")
-                    
-            elif file_path.lower().endswith('.pdf'):
-                # Regular PDF
-                file_listbox.insert(tk.END, f"📄 {file_name}")
-                all_pdf_paths.append(file_path)
-                
-            elif file_path.lower().endswith(('.jpg', '.jpeg')):
-                # Convert JPG to PDF
-                try:
-                    if PIL_AVAILABLE:
-                        # Create temp PDF from JPG
-                        jpg_pdf_path = os.path.join(temp_dir, f"{os.path.splitext(file_name)[0]}.pdf")
-                        if convert_jpg_to_pdf(file_path, jpg_pdf_path):
-                            file_listbox.insert(tk.END, f"📷➡️📄 {file_name} (converted)")
-                            all_pdf_paths.append(jpg_pdf_path)
-                        else:
-                            file_listbox.insert(tk.END, f"❌ {file_name} (conversion failed)")
-                    else:
-                        file_listbox.insert(tk.END, f"❌ {file_name} (PIL required for JPG)")
-                except Exception as e:
-                    print(f"DEBUG: JPG conversion error: {str(e)}")
-                    file_listbox.insert(tk.END, f"❌ {file_name} (JPG error)")
-                    
-            else:
-                file_listbox.insert(tk.END, f"❌ {file_name} (unsupported)")
-        
-        # Update status
-        if all_pdf_paths:
-            status_label.config(text=f"Ready! {len(all_pdf_paths)} PDFs loaded", fg="green")
-        else:
-            status_label.config(text="No PDFs found", fg="red")
-            
-        print(f"DEBUG: Processing complete. {len(all_pdf_paths)} PDFs ready")
+        # Use shared processing logic
+        process_files_from_paths(files)
         
     except Exception as e:
         print(f"DEBUG: Error in file selection: {str(e)}")
@@ -947,6 +1033,31 @@ tk.Button(scrollable_frame, text="📁 Select PDF, JPG or ZIP Files", command=se
          font=('System', 14), bg='#2C3E50', fg='black', width=25, height=2,
          relief='flat', bd=0).pack(pady=10)
 
+# Recent Downloads section
+recent_frame = tk.Frame(scrollable_frame, bg='#f8f9fa', relief='solid', bd=1)
+recent_frame.pack(pady=10, fill='x', padx=20)
+
+# Recent Downloads header with refresh button
+recent_header_frame = tk.Frame(recent_frame, bg='#f8f9fa')
+recent_header_frame.pack(fill='x', pady=(10, 5))
+
+tk.Label(recent_header_frame, text="📥 Recent Downloads (click to select):", 
+         font=('System', 12, 'bold'), bg='#f8f9fa', fg='#2C3E50').pack(side='left')
+
+tk.Button(recent_header_frame, text="🔄", command=lambda: refresh_recent_downloads(),
+         font=('System', 10), bg='#6c757d', fg='white', width=3, height=1,
+         relief='flat', bd=0).pack(side='right', padx=(5, 10))
+
+# Recent downloads listbox
+recent_downloads_listbox = tk.Listbox(recent_frame, height=4, width=70, font=('System', 9), 
+                                     bg='white', relief='solid', bd=1, selectmode='single')
+recent_downloads_listbox.pack(pady=(0, 10), padx=10, fill='x')
+recent_downloads_listbox.bind('<Double-Button-1>', on_recent_file_select)
+recent_downloads_listbox.bind('<Return>', on_recent_file_select)
+
+# Populate recent downloads on startup
+refresh_recent_downloads()
+
 # File list - ALWAYS SHOWN
 tk.Label(scrollable_frame, text="Selected Files:", font=('System', 12, 'bold'), bg='#f0f0f0').pack(pady=(20, 5))
 file_listbox = tk.Listbox(scrollable_frame, height=8, width=70, font=('System', 10), 
@@ -1037,6 +1148,51 @@ print("DEBUG: Full GUI interface created - all elements always visible")
 tk.Button(scrollable_frame, text="🔗 Create Listing Packet", command=create_packet,
          font=('System', 14, 'bold'), bg='#E91E63', fg='black', width=25, height=2,
          relief='flat', bd=0).pack(pady=20)
+
+# Refresh button for new property
+def refresh_app():
+    """Reset the application for a new property"""
+    global all_pdf_paths, temp_dir, cover_photo_path
+    
+    # Clear file list
+    file_listbox.delete(0, tk.END)
+    
+    # Reset PDF paths
+    all_pdf_paths = []
+    
+    # Clear temp directory
+    if temp_dir and os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)
+        temp_dir = None
+    
+    # Reset cover photo
+    cover_photo_path = None
+    if COVER_AVAILABLE:
+        cover_photo_btn.config(text="📸 Select Property Photo")
+    else:
+        cover_photo_btn.config(text="📸 Select Property Photo (install libraries first)")
+    
+    # Clear address fields
+    street_entry.delete(0, tk.END)
+    city_state_entry.delete(0, tk.END)
+    
+    # Reset checkboxes
+    if cover_var:
+        cover_var.set(False)
+    if instagram_var:
+        instagram_var.set(False)
+    
+    # Refresh recent downloads list
+    refresh_recent_downloads()
+    
+    # Reset status
+    status_label.config(text="Ready for new property", fg="green")
+    
+    print("DEBUG: App refreshed for new property")
+
+tk.Button(scrollable_frame, text="🔄 New Property", command=refresh_app,
+         font=('System', 12), bg='#95A5A6', fg='black', width=15, height=1,
+         relief='flat', bd=0).pack(pady=(5, 15))
 
 # Status
 status_label = tk.Label(scrollable_frame, text="Ready to select files", 

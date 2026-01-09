@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive README documentation
 - Contributing guidelines
 - Automated GitHub push scripts
+- 🔄 Refresh button for processing multiple properties without restarting the app
+- 📥 Recent Downloads section for quick file selection from Downloads folder
+
+### Enhanced
+- User workflow improvements for real estate agents handling multiple listings
+- Quick access to recently downloaded files without opening Finder
+- Double-click to select files from recent downloads list
+- Automatic refresh of recent files when starting new property
 
 ## [2.0.0] - 2024-12-16
 
