@@ -703,6 +703,17 @@ def main():
         st.markdown("### 📁 Step 2: Upload Files")
         st.markdown("*When selecting files, click them in the order you want them to appear in the packet*")
         
+        # Refresh button for new property
+        if st.button("🔄 New Property", help="Clear all inputs and start fresh with a new property", use_container_width=True, type="secondary"):
+            # Clear all session state
+            st.session_state.packet_data = None
+            st.session_state.instagram_files = []
+            st.session_state.packet_filename = ""
+            st.session_state.processing_complete = False
+            st.session_state.packet_summary = ""
+            st.success("✨ Ready for new property!")
+            st.rerun()
+        
         # File upload
         uploaded_files = st.file_uploader(
             "Select PDF, JPG, or ZIP files",
@@ -710,6 +721,24 @@ def main():
             accept_multiple_files=True,
             help="Upload multiple PDF files, ZIP archives, or JPG images to combine into a listing packet"
         )
+        
+        # Recent downloads section (web equivalent)
+        with st.expander("📥 Quick Upload Tips", expanded=False):
+            st.markdown("""
+            **💡 Pro Tips for File Organization:**
+            • Upload files in the order you want them in the packet
+            • Use descriptive filenames for better organization  
+            • ZIP files will be automatically extracted
+            • JPG images will be converted to PDF format
+            • Multiple files can be selected at once
+            
+            **📂 Recommended File Order:**
+            1. MLS listing sheet
+            2. Property disclosures
+            3. HOA documents (if applicable)
+            4. Property photos/floor plans
+            5. Additional documents
+            """)
         
         if uploaded_files:
             st.markdown("#### 📋 Selected Files")
