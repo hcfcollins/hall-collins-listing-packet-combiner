@@ -18,12 +18,13 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
-INSTAGRAM_VERSION = "2.3"  # Increment this when Instagram code changes
-APP_VERSION = "2.3.0"  # Main app version
-UPDATE_NOTES = "Fixed font consistency across all Instagram post types and reduced text spacing to prevent cutoff"  # Brief note about what was updated
+INSTAGRAM_VERSION = "2.4"  # Increment this when Instagram code changes
+APP_VERSION = "2.4.0"  # Main app version
+UPDATE_NOTES = "Added refresh button for multiple properties and recent downloads section for quick file access"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.4.0": "Added refresh button for multiple properties and recent downloads section for quick file access",
     "2.3.0": "Fixed font consistency across all Instagram post types and reduced text spacing to prevent cutoff",
     "2.2.0": "Reverted to original font sizes (59pt/40pt) and added debugging to diagnose font loading issues",
     "2.1.6": "Increased Instagram post text size for better readability - street address now 80pt, city/state 60pt",
