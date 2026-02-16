@@ -18,12 +18,13 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
-INSTAGRAM_VERSION = "3.2"  # Increment this when Instagram code changes
-APP_VERSION = "2.5.2"  # Main app version
-UPDATE_NOTES = "REMOVED DejaVu fonts completely - Liberation/Times/Helvetica/Default only"  # Brief note about what was updated
+INSTAGRAM_VERSION = "3.3"  # Increment this when Instagram code changes
+APP_VERSION = "2.5.3"  # Main app version
+UPDATE_NOTES = "FIXED Liberation Serif loading with multiple paths to restore beautiful November font appearance"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.5.3": "FIXED Liberation Serif loading with multiple paths to restore beautiful November font appearance",
     "2.5.2": "REMOVED DejaVu fonts completely - Liberation/Times/Helvetica/Default only",
     "2.5.1": "RESTORED: Back to original working Liberation Serif font that was working in Streamlit Cloud",
     "2.5.0": "MAJOR FIX: Web-first font loading to avoid DejaVu fonts entirely in cloud deployment",
@@ -286,47 +287,70 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
         main_font_details = ""
         small_font_details = ""
         
-        # Load main font (65pt for street address - NO DEJAVU ALLOWED)
-        try:
-            # Try the original working cloud font first
-            main_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 65)
-            main_font_details = "LiberationSerif-Regular.ttf at 65pt"
-        except Exception as e:
+        # Load main font (65pt) - Fix Liberation Serif loading to match the beautiful November posts
+        main_font_loaded = False
+        liberation_paths = [
+            "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
+            "/usr/share/fonts/TTF/LiberationSerif-Regular.ttf", 
+            "/usr/share/fonts/liberation/LiberationSerif-Regular.ttf",
+            "/opt/conda/share/fonts/liberation/LiberationSerif-Regular.ttf"  # Common cloud path
+        ]
+        
+        # Try Liberation Serif with multiple paths (this created the beautiful November posts)
+        for font_path in liberation_paths:
+            try:
+                main_font = ImageFont.truetype(font_path, 65)
+                main_font_details = f"Liberation Serif at 65pt from {font_path}"
+                main_font_loaded = True
+                break
+            except:
+                continue
+        
+        if not main_font_loaded:
             try:
                 # Try macOS fonts for local development
                 main_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 65)
-                main_font_details = "Times.ttc at 65pt"
-            except Exception as e2:
+                main_font_details = "Times.ttc at 65pt (macOS)"
+                main_font_loaded = True
+            except Exception as e:
                 try:
                     main_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 65)
-                    main_font_details = "Helvetica.ttc at 65pt"
-                except Exception as e3:
-                    # Use default font instead of DejaVu
+                    main_font_details = "Helvetica.ttc at 65pt (macOS)"
+                    main_font_loaded = True
+                except Exception as e2:
+                    # If all else fails, try to make default font larger and better
                     main_font = ImageFont.load_default()
-                    try:
-                        main_font = main_font.font_variant(size=65)
-                    except:
-                        pass
-                    main_font_details = "Default system font (NO DejaVu)"
+                    main_font_details = "WARNING: Using ugly default font - Liberation Serif not found!"
         
-        # Load small font (45pt for city/state - NO DEJAVU ALLOWED)
-        try:
-            # Try the original working cloud font first
-            small_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 45)
-            small_font_details = "LiberationSerif-Regular.ttf at 45pt"
-        except Exception as e:
+        # Load small font (45pt) - Match the main Liberation Serif font
+        small_font_loaded = False
+        
+        # If we successfully loaded Liberation Serif for main font, use it for small font too
+        if main_font_loaded and "Liberation Serif" in main_font_details:
+            for font_path in liberation_paths:
+                try:
+                    small_font = ImageFont.truetype(font_path, 45)
+                    small_font_details = f"Liberation Serif at 45pt from {font_path}"
+                    small_font_loaded = True
+                    break
+                except:
+                    continue
+        
+        if not small_font_loaded:
             try:
                 # Try macOS fonts for local development
                 small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 45)
-                small_font_details = "Times.ttc at 45pt"
-            except Exception as e2:
+                small_font_details = "Times.ttc at 45pt (macOS)"
+                small_font_loaded = True
+            except Exception as e:
                 try:
                     small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 45)
-                    small_font_details = "Helvetica.ttc at 45pt"
-                except Exception as e3:
-                    # Use main font as fallback instead of DejaVu
+                    small_font_details = "Helvetica.ttc at 45pt (macOS)"
+                    small_font_loaded = True
+                except Exception as e2:
+                    # Use main font as fallback
                     small_font = main_font
-                    small_font_details = "Using main font (NO DejaVu)"
+                    small_font_details = "Using main font as fallback"
         
         # Log font loading results once
         st.success(f"✅ Main font loaded: {main_font_details}")
