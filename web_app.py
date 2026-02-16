@@ -18,12 +18,13 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
-INSTAGRAM_VERSION = "2.8"  # Increment this when Instagram code changes
-APP_VERSION = "2.4.4"  # Main app version
-UPDATE_NOTES = "Prioritized Helvetica font over DejaVu and reduced sizes to 65pt/45pt for better visual appearance"  # Brief note about what was updated
+INSTAGRAM_VERSION = "2.9"  # Increment this when Instagram code changes
+APP_VERSION = "2.4.5"  # Main app version
+UPDATE_NOTES = "Improved font priority to avoid DejaVu and reduced text spacing to 75px for better layout"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.4.5": "Improved font priority to avoid DejaVu and reduced text spacing to 75px for better layout",
     "2.4.4": "Prioritized Helvetica font over DejaVu and reduced sizes to 65pt/45pt for better visual appearance",
     "2.4.3": "Optimized Instagram font sizes - reduced to 70pt/50pt for better visual balance",
     "2.4.2": "Fixed Instagram font loading for cloud deployment - added web-friendly font fallbacks",
@@ -282,9 +283,9 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
         main_font_details = ""
         small_font_details = ""
         
-        # Load main font (65pt for street address - optimized size with better font priority)
+        # Load main font (65pt for street address - Liberation preferred over DejaVu for cloud)
         try:
-            # Try macOS fonts first (Helvetica preference)
+            # Try macOS fonts first (for local development)
             main_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 65)
             main_font_details = "Helvetica.ttc at 65pt"
         except Exception as e:
@@ -293,27 +294,32 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                 main_font_details = "Times.ttc at 65pt"
             except Exception as e2:
                 try:
-                    # Try cloud/web-friendly fonts (Liberation preferred over DejaVu)
+                    # Prioritize Liberation over DejaVu for web deployment
                     main_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 65)
                     main_font_details = "LiberationSerif-Regular.ttf at 65pt"
                 except Exception as e3:
                     try:
-                        # Only use DejaVu as last resort and smaller size
-                        main_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 60)
-                        main_font_details = "DejaVuSerif.ttf at 60pt (reduced size)"
+                        # Try Liberation Sans as backup
+                        main_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 65)
+                        main_font_details = "LiberationSans-Regular.ttf at 65pt"
                     except Exception as e4:
-                        # Create a larger default font by scaling
-                        main_font = ImageFont.load_default()
-                        # Try to get a better size by loading default multiple times
                         try:
-                            main_font = main_font.font_variant(size=65)
-                        except:
-                            pass
-                        main_font_details = f"Default font at 65pt size - Web fonts not available"
+                            # Only use DejaVu as absolute last resort with smaller size
+                            main_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 55)
+                            main_font_details = "DejaVuSerif.ttf at 55pt (last resort - reduced size)"
+                        except Exception as e5:
+                            # Create a larger default font by scaling
+                            main_font = ImageFont.load_default()
+                            # Try to get a better size by loading default multiple times
+                            try:
+                                main_font = main_font.font_variant(size=65)
+                            except:
+                                pass
+                            main_font_details = f"Default font at 65pt size - Web fonts not available"
         
-        # Load small font (45pt for city/state - Helvetica-prioritized font loading)
+        # Load small font (45pt for city/state - Liberation preferred over DejaVu for cloud)
         try:
-            # Try macOS fonts first (Helvetica preference)
+            # Try macOS fonts first (for local development)
             small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 45)
             small_font_details = "Helvetica.ttc at 45pt"
         except Exception as e:
@@ -322,18 +328,23 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                 small_font_details = "Times.ttc at 45pt"
             except Exception as e2:
                 try:
-                    # Try cloud/web-friendly fonts (Liberation preferred over DejaVu)
+                    # Prioritize Liberation over DejaVu for web deployment
                     small_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 45)
                     small_font_details = "LiberationSerif-Regular.ttf at 45pt"
                 except Exception as e3:
                     try:
-                        # Only use DejaVu as last resort and smaller size
-                        small_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 40)
-                        small_font_details = "DejaVuSerif.ttf at 40pt (reduced size)"
+                        # Try Liberation Sans as backup
+                        small_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 45)
+                        small_font_details = "LiberationSans-Regular.ttf at 45pt"
                     except Exception as e4:
-                        # Use main font as fallback (which should be larger)
-                        small_font = main_font
-                        small_font_details = f"Using main font as fallback - Web fonts not available"
+                        try:
+                            # Only use DejaVu as absolute last resort with smaller size
+                            small_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 35)
+                            small_font_details = "DejaVuSerif.ttf at 35pt (last resort - reduced size)"
+                        except Exception as e5:
+                            # Use main font as fallback (which should be larger)
+                            small_font = main_font
+                            small_font_details = f"Using main font as fallback - Web fonts not available"
         
         # Log font loading results once
         st.success(f"✅ Main font loaded: {main_font_details}")
@@ -441,8 +452,8 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                                 else:
                                     city_x_final = text_x
                                 
-                                # Optimized spacing: 90px between lines (was 70px) to prevent cutoff
-                                city_position = (city_x_final, text_y + 90)
+                                # Reduced spacing: 75px between lines (was 90px) to bring city/state closer
+                                city_position = (city_x_final, text_y + 75)
                                 draw.text(city_position, city_state_upper, fill=text_color, font=city_font)
                             except Exception as city_e:
                                 st.warning(f"Could not add city/state text: {city_e}")
