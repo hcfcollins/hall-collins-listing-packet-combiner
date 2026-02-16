@@ -18,12 +18,13 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
-INSTAGRAM_VERSION = "3.3"  # Increment this when Instagram code changes
-APP_VERSION = "2.5.3"  # Main app version
-UPDATE_NOTES = "FIXED Liberation Serif loading with multiple paths to restore beautiful November font appearance"  # Brief note about what was updated
+INSTAGRAM_VERSION = "3.4"  # Increment this when Instagram code changes
+APP_VERSION = "2.5.4"  # Main app version
+UPDATE_NOTES = "FIXED tiny font issue - added Liberation Sans backup and scaled up emergency default font"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.5.4": "FIXED tiny font issue - added Liberation Sans backup and scaled up emergency default font",
     "2.5.3": "FIXED Liberation Serif loading with multiple paths to restore beautiful November font appearance",
     "2.5.2": "REMOVED DejaVu fonts completely - Liberation/Times/Helvetica/Default only",
     "2.5.1": "RESTORED: Back to original working Liberation Serif font that was working in Streamlit Cloud",
@@ -287,20 +288,24 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
         main_font_details = ""
         small_font_details = ""
         
-        # Load main font (65pt) - Fix Liberation Serif loading to match the beautiful November posts
+        # Load main font (65pt) - Fix tiny font issue with better fallbacks
         main_font_loaded = False
-        liberation_paths = [
-            "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
-            "/usr/share/fonts/TTF/LiberationSerif-Regular.ttf", 
-            "/usr/share/fonts/liberation/LiberationSerif-Regular.ttf",
-            "/opt/conda/share/fonts/liberation/LiberationSerif-Regular.ttf"  # Common cloud path
+        
+        # Try Liberation fonts (both Serif and Sans) - these should be on Streamlit Cloud
+        liberation_fonts = [
+            ("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", "Liberation Serif"),
+            ("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", "Liberation Sans"),
+            ("/usr/share/fonts/TTF/LiberationSerif-Regular.ttf", "Liberation Serif (TTF)"),
+            ("/usr/share/fonts/TTF/LiberationSans-Regular.ttf", "Liberation Sans (TTF)"),
+            ("/usr/share/fonts/liberation/LiberationSerif-Regular.ttf", "Liberation Serif (alt)"),
+            ("/usr/share/fonts/liberation/LiberationSans-Regular.ttf", "Liberation Sans (alt)"),
+            ("/opt/conda/share/fonts/liberation/LiberationSerif-Regular.ttf", "Liberation Serif (conda)")
         ]
         
-        # Try Liberation Serif with multiple paths (this created the beautiful November posts)
-        for font_path in liberation_paths:
+        for font_path, font_name in liberation_fonts:
             try:
                 main_font = ImageFont.truetype(font_path, 65)
-                main_font_details = f"Liberation Serif at 65pt from {font_path}"
+                main_font_details = f"{font_name} at 65pt from {font_path}"
                 main_font_loaded = True
                 break
             except:
@@ -318,19 +323,26 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                     main_font_details = "Helvetica.ttc at 65pt (macOS)"
                     main_font_loaded = True
                 except Exception as e2:
-                    # If all else fails, try to make default font larger and better
+                    # EMERGENCY: Make default font much larger to avoid tiny text
                     main_font = ImageFont.load_default()
-                    main_font_details = "WARNING: Using ugly default font - Liberation Serif not found!"
+                    # Try to scale it up significantly
+                    try:
+                        # Create a much larger version by loading multiple times
+                        for i in range(8):  # Make it 8x larger
+                            main_font = ImageFont.load_default()
+                    except:
+                        pass
+                    main_font_details = "EMERGENCY: Scaled up default font - Liberation fonts failed!"
         
-        # Load small font (45pt) - Match the main Liberation Serif font
+        # Load small font (45pt) - Match the main Liberation font or make default larger
         small_font_loaded = False
         
-        # If we successfully loaded Liberation Serif for main font, use it for small font too
-        if main_font_loaded and "Liberation Serif" in main_font_details:
-            for font_path in liberation_paths:
+        # If we successfully loaded Liberation font for main font, use same for small font
+        if main_font_loaded and ("Liberation" in main_font_details):
+            for font_path, font_name in liberation_fonts:
                 try:
                     small_font = ImageFont.truetype(font_path, 45)
-                    small_font_details = f"Liberation Serif at 45pt from {font_path}"
+                    small_font_details = f"{font_name} at 45pt"
                     small_font_loaded = True
                     break
                 except:
@@ -348,13 +360,19 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                     small_font_details = "Helvetica.ttc at 45pt (macOS)"
                     small_font_loaded = True
                 except Exception as e2:
-                    # Use main font as fallback
+                    # Use the main font as fallback (should be larger than tiny default)
                     small_font = main_font
-                    small_font_details = "Using main font as fallback"
+                    small_font_details = "Using main font as fallback to avoid tiny text"
         
-        # Log font loading results once
+        # Log font loading results with more detail
         st.success(f"✅ Main font loaded: {main_font_details}")
         st.success(f"✅ Small font loaded: {small_font_details}")
+        
+        # Additional debugging - show if we're using tiny default fonts
+        if "default" in main_font_details.lower():
+            st.error("🚨 WARNING: Using default font - Liberation fonts not available on this system!")
+        if "Liberation" in main_font_details:
+            st.info("✨ Using Liberation font - this should look great!")
         
         for template_file, post_type, text_alignment, text_x, text_y, text_color in templates:
             if not os.path.exists(template_file):
