@@ -18,12 +18,13 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
-INSTAGRAM_VERSION = "2.4"  # Increment this when Instagram code changes
-APP_VERSION = "2.4.0"  # Main app version
-UPDATE_NOTES = "Added refresh button for multiple properties and recent downloads section for quick file access"  # Brief note about what was updated
+INSTAGRAM_VERSION = "2.5"  # Increment this when Instagram code changes
+APP_VERSION = "2.4.1"  # Main app version
+UPDATE_NOTES = "Fixed Instagram post font sizes - increased to 80pt/60pt for proper social media visibility"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.4.1": "Fixed Instagram post font sizes - increased to 80pt/60pt for proper social media visibility",
     "2.4.0": "Added refresh button for multiple properties and recent downloads section for quick file access",
     "2.3.0": "Fixed font consistency across all Instagram post types and reduced text spacing to prevent cutoff",
     "2.2.0": "Reverted to original font sizes (59pt/40pt) and added debugging to diagnose font loading issues",
@@ -278,26 +279,26 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
         main_font_details = ""
         small_font_details = ""
         
-        # Load main font (59pt for street address)
+        # Load main font (80pt for street address - increased from 59pt)
         try:
-            main_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 59)
-            main_font_details = "Times.ttc at 59pt"
+            main_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 80)
+            main_font_details = "Times.ttc at 80pt"
         except Exception as e:
             try:
-                main_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 59)
-                main_font_details = "Helvetica.ttc at 59pt"
+                main_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 80)
+                main_font_details = "Helvetica.ttc at 80pt"
             except Exception as e2:
                 main_font = ImageFont.load_default()
                 main_font_details = f"Default font (fallback) - Times error: {e}, Helvetica error: {e2}"
         
-        # Load small font (40pt for city/state)
+        # Load small font (60pt for city/state - increased from 40pt)
         try:
-            small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 40)
-            small_font_details = "Times.ttc at 40pt"
+            small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 60)
+            small_font_details = "Times.ttc at 60pt"
         except Exception as e:
             try:
-                small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 40)
-                small_font_details = "Helvetica.ttc at 40pt"
+                small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 60)
+                small_font_details = "Helvetica.ttc at 60pt"
             except Exception as e2:
                 small_font = main_font  # Use main font as fallback
                 small_font_details = f"Using main font as fallback - Times error: {e}, Helvetica error: {e2}"
@@ -385,7 +386,7 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                         # Add street address text with specified color
                         text_bbox = draw.textbbox((0, 0), street_address_upper, font=font)
                         rendered_text_height = text_bbox[3] - text_bbox[1]
-                        st.info(f"🔍 {post_type} - Street address height: {rendered_text_height}px (expected ~59px for 59pt font)")
+                        st.info(f"🔍 {post_type} - Street address height: {rendered_text_height}px (expected ~80px for 80pt font)")
                         draw.text(text_position, street_address_upper, fill=text_color, font=font)
                         
                         # Add city/state below street address if available
@@ -408,8 +409,8 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                                 else:
                                     city_x_final = text_x
                                 
-                                # Reduced spacing from 120 to 70 pixels to prevent cutoff
-                                city_position = (city_x_final, text_y + 70)
+                                # Optimized spacing: 90px between lines (was 70px) to prevent cutoff
+                                city_position = (city_x_final, text_y + 90)
                                 draw.text(city_position, city_state_upper, fill=text_color, font=city_font)
                             except Exception as city_e:
                                 st.warning(f"Could not add city/state text: {city_e}")
