@@ -18,12 +18,13 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
-INSTAGRAM_VERSION = "2.6"  # Increment this when Instagram code changes
-APP_VERSION = "2.4.2"  # Main app version
-UPDATE_NOTES = "Fixed Instagram font loading for cloud deployment - added web-friendly font fallbacks"  # Brief note about what was updated
+INSTAGRAM_VERSION = "2.7"  # Increment this when Instagram code changes
+APP_VERSION = "2.4.3"  # Main app version
+UPDATE_NOTES = "Optimized Instagram font sizes - reduced to 70pt/50pt for better visual balance"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.4.3": "Optimized Instagram font sizes - reduced to 70pt/50pt for better visual balance",
     "2.4.2": "Fixed Instagram font loading for cloud deployment - added web-friendly font fallbacks",
     "2.4.1": "Fixed Instagram post font sizes - increased to 80pt/60pt for proper social media visibility",
     "2.4.0": "Added refresh button for multiple properties and recent downloads section for quick file access",
@@ -280,54 +281,54 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
         main_font_details = ""
         small_font_details = ""
         
-        # Load main font (80pt for street address - web-optimized font loading)
+        # Load main font (70pt for street address - optimized size for readability)
         try:
             # Try cloud/web-friendly font paths first
-            main_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 80)
-            main_font_details = "LiberationSerif-Regular.ttf at 80pt"
+            main_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 70)
+            main_font_details = "LiberationSerif-Regular.ttf at 70pt"
         except Exception as e:
             try:
                 # Try another common Linux font
-                main_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 80)
-                main_font_details = "DejaVuSerif.ttf at 80pt"
+                main_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 70)
+                main_font_details = "DejaVuSerif.ttf at 70pt"
             except Exception as e2:
                 try:
                     # Try macOS fonts (for local development)
-                    main_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 80)
-                    main_font_details = "Times.ttc at 80pt"
+                    main_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 70)
+                    main_font_details = "Times.ttc at 70pt"
                 except Exception as e3:
                     try:
-                        main_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 80)
-                        main_font_details = "Helvetica.ttc at 80pt"
+                        main_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 70)
+                        main_font_details = "Helvetica.ttc at 70pt"
                     except Exception as e4:
                         # Create a larger default font by scaling
                         main_font = ImageFont.load_default()
                         # Try to get a better size by loading default multiple times
                         try:
-                            main_font = main_font.font_variant(size=80)
+                            main_font = main_font.font_variant(size=70)
                         except:
                             pass
-                        main_font_details = f"Default font at maximum size - Web fonts not available"
+                        main_font_details = f"Default font at 70pt size - Web fonts not available"
         
-        # Load small font (60pt for city/state - web-optimized font loading)
+        # Load small font (50pt for city/state - web-optimized font loading)
         try:
             # Try cloud/web-friendly font paths first
-            small_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 60)
-            small_font_details = "LiberationSerif-Regular.ttf at 60pt"
+            small_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 50)
+            small_font_details = "LiberationSerif-Regular.ttf at 50pt"
         except Exception as e:
             try:
                 # Try another common Linux font
-                small_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 60)
-                small_font_details = "DejaVuSerif.ttf at 60pt"
+                small_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 50)
+                small_font_details = "DejaVuSerif.ttf at 50pt"
             except Exception as e2:
                 try:
                     # Try macOS fonts (for local development)
-                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 60)
-                    small_font_details = "Times.ttc at 60pt"
+                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 50)
+                    small_font_details = "Times.ttc at 50pt"
                 except Exception as e3:
                     try:
-                        small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 60)
-                        small_font_details = "Helvetica.ttc at 60pt"
+                        small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 50)
+                        small_font_details = "Helvetica.ttc at 50pt"
                     except Exception as e4:
                         # Use main font as fallback (which should be larger)
                         small_font = main_font
@@ -416,7 +417,7 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                         # Add street address text with specified color
                         text_bbox = draw.textbbox((0, 0), street_address_upper, font=font)
                         rendered_text_height = text_bbox[3] - text_bbox[1]
-                        st.info(f"🔍 {post_type} - Street address height: {rendered_text_height}px (expected ~80px for 80pt font)")
+                        st.info(f"🔍 {post_type} - Street address height: {rendered_text_height}px (expected ~70px for 70pt font)")
                         draw.text(text_position, street_address_upper, fill=text_color, font=font)
                         
                         # Add city/state below street address if available
