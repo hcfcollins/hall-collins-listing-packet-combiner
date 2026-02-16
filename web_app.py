@@ -18,12 +18,13 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
-INSTAGRAM_VERSION = "3.0"  # Increment this when Instagram code changes
-APP_VERSION = "2.5.0"  # Main app version
-UPDATE_NOTES = "MAJOR FIX: Web-first font loading to avoid DejaVu fonts entirely in cloud deployment"  # Brief note about what was updated
+INSTAGRAM_VERSION = "3.1"  # Increment this when Instagram code changes
+APP_VERSION = "2.5.1"  # Main app version
+UPDATE_NOTES = "RESTORED: Back to original working Liberation Serif font that was working in Streamlit Cloud"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.5.1": "RESTORED: Back to original working Liberation Serif font that was working in Streamlit Cloud",
     "2.5.0": "MAJOR FIX: Web-first font loading to avoid DejaVu fonts entirely in cloud deployment",
     "2.4.5": "Improved font priority to avoid DejaVu and reduced text spacing to 75px for better layout",
     "2.4.4": "Prioritized Helvetica font over DejaVu and reduced sizes to 65pt/45pt for better visual appearance",
@@ -284,104 +285,53 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
         main_font_details = ""
         small_font_details = ""
         
-        # Load main font (65pt) - WEB-FIRST approach to avoid DejaVu
-        main_font_loaded = False
+        # Load main font (65pt for street address - back to original working approach)
         try:
-            # Strategy 1: Try web-safe fonts FIRST (these work on both local and cloud)
-            for font_path, font_name in [
-                ("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", "Liberation Sans"),
-                ("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", "Liberation Serif"),
-                ("/usr/share/fonts/TTF/LiberationSans-Regular.ttf", "Liberation Sans (alt path)"),
-                ("/usr/share/fonts/TTF/LiberationSerif-Regular.ttf", "Liberation Serif (alt path)"),
-            ]:
-                try:
-                    main_font = ImageFont.truetype(font_path, 65)
-                    main_font_details = f"{font_name} at 65pt (web-safe)"
-                    main_font_loaded = True
-                    break
-                except:
-                    continue
-            
-            # Strategy 2: Only try macOS fonts if web fonts failed
-            if not main_font_loaded:
-                for font_path, font_name in [
-                    ("/System/Library/Fonts/Helvetica.ttc", "Helvetica"),
-                    ("/System/Library/Fonts/Times.ttc", "Times"),
-                ]:
-                    try:
-                        main_font = ImageFont.truetype(font_path, 65)
-                        main_font_details = f"{font_name} at 65pt (macOS)"
-                        main_font_loaded = True
-                        break
-                    except:
-                        continue
-            
-            # Strategy 3: Absolute last resort - avoid DejaVu entirely if possible
-            if not main_font_loaded:
-                try:
-                    # Try to use default font with scaling
-                    main_font = ImageFont.load_default()
-                    try:
-                        main_font = main_font.font_variant(size=65)
-                    except:
-                        pass
-                    main_font_details = "Default system font at 65pt (DejaVu avoided)"
-                    main_font_loaded = True
-                except:
-                    # Very last resort - DejaVu but much smaller
-                    main_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 50)
-                    main_font_details = "DejaVu Serif at 50pt (LAST RESORT - very small)"
-                    
+            # Try the original working cloud font first (this was working before!)
+            main_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 65)
+            main_font_details = "LiberationSerif-Regular.ttf at 65pt"
         except Exception as e:
-            main_font = ImageFont.load_default()
-            main_font_details = f"Emergency fallback font - Error: {str(e)}"
+            try:
+                # Try macOS fonts for local development
+                main_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 65)
+                main_font_details = "Times.ttc at 65pt"
+            except Exception as e2:
+                try:
+                    main_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 65)
+                    main_font_details = "Helvetica.ttc at 65pt"
+                except Exception as e3:
+                    try:
+                        # Last resort - DejaVu much smaller
+                        main_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 55)
+                        main_font_details = "DejaVuSerif.ttf at 55pt (fallback)"
+                    except Exception as e4:
+                        # Emergency fallback
+                        main_font = ImageFont.load_default()
+                        main_font_details = "Default font"
         
-        # Load small font (45pt) - WEB-FIRST approach to avoid DejaVu
-        small_font_loaded = False
+        # Load small font (45pt for city/state - back to original working approach)
         try:
-            # Strategy 1: Try web-safe fonts FIRST (these work on both local and cloud)
-            for font_path, font_name in [
-                ("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", "Liberation Sans"),
-                ("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", "Liberation Serif"),
-                ("/usr/share/fonts/TTF/LiberationSans-Regular.ttf", "Liberation Sans (alt path)"),
-                ("/usr/share/fonts/TTF/LiberationSerif-Regular.ttf", "Liberation Serif (alt path)"),
-            ]:
-                try:
-                    small_font = ImageFont.truetype(font_path, 45)
-                    small_font_details = f"{font_name} at 45pt (web-safe)"
-                    small_font_loaded = True
-                    break
-                except:
-                    continue
-            
-            # Strategy 2: Only try macOS fonts if web fonts failed
-            if not small_font_loaded:
-                for font_path, font_name in [
-                    ("/System/Library/Fonts/Helvetica.ttc", "Helvetica"),
-                    ("/System/Library/Fonts/Times.ttc", "Times"),
-                ]:
-                    try:
-                        small_font = ImageFont.truetype(font_path, 45)
-                        small_font_details = f"{font_name} at 45pt (macOS)"
-                        small_font_loaded = True
-                        break
-                    except:
-                        continue
-            
-            # Strategy 3: Use main font as fallback rather than DejaVu
-            if not small_font_loaded:
-                if main_font_loaded:
-                    small_font = main_font
-                    small_font_details = "Using main font as fallback (DejaVu avoided)"
-                    small_font_loaded = True
-                else:
-                    # Very last resort - DejaVu but much smaller
-                    small_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 35)
-                    small_font_details = "DejaVu Serif at 35pt (LAST RESORT - very small)"
-                    
+            # Try the original working cloud font first (this was working before!)
+            small_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 45)
+            small_font_details = "LiberationSerif-Regular.ttf at 45pt"
         except Exception as e:
-            small_font = main_font
-            small_font_details = f"Emergency fallback to main font - Error: {str(e)}"
+            try:
+                # Try macOS fonts for local development
+                small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 45)
+                small_font_details = "Times.ttc at 45pt"
+            except Exception as e2:
+                try:
+                    small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 45)
+                    small_font_details = "Helvetica.ttc at 45pt"
+                except Exception as e3:
+                    try:
+                        # Last resort - DejaVu much smaller
+                        small_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 35)
+                        small_font_details = "DejaVuSerif.ttf at 35pt (fallback)"
+                    except Exception as e4:
+                        # Use main font as fallback
+                        small_font = main_font
+                        small_font_details = "Using main font"
         
         # Log font loading results once
         st.success(f"✅ Main font loaded: {main_font_details}")
