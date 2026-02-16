@@ -18,12 +18,13 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
-INSTAGRAM_VERSION = "2.5"  # Increment this when Instagram code changes
-APP_VERSION = "2.4.1"  # Main app version
-UPDATE_NOTES = "Fixed Instagram post font sizes - increased to 80pt/60pt for proper social media visibility"  # Brief note about what was updated
+INSTAGRAM_VERSION = "2.6"  # Increment this when Instagram code changes
+APP_VERSION = "2.4.2"  # Main app version
+UPDATE_NOTES = "Fixed Instagram font loading for cloud deployment - added web-friendly font fallbacks"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.4.2": "Fixed Instagram font loading for cloud deployment - added web-friendly font fallbacks",
     "2.4.1": "Fixed Instagram post font sizes - increased to 80pt/60pt for proper social media visibility",
     "2.4.0": "Added refresh button for multiple properties and recent downloads section for quick file access",
     "2.3.0": "Fixed font consistency across all Instagram post types and reduced text spacing to prevent cutoff",
@@ -279,29 +280,58 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
         main_font_details = ""
         small_font_details = ""
         
-        # Load main font (80pt for street address - increased from 59pt)
+        # Load main font (80pt for street address - web-optimized font loading)
         try:
-            main_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 80)
-            main_font_details = "Times.ttc at 80pt"
+            # Try cloud/web-friendly font paths first
+            main_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 80)
+            main_font_details = "LiberationSerif-Regular.ttf at 80pt"
         except Exception as e:
             try:
-                main_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 80)
-                main_font_details = "Helvetica.ttc at 80pt"
+                # Try another common Linux font
+                main_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 80)
+                main_font_details = "DejaVuSerif.ttf at 80pt"
             except Exception as e2:
-                main_font = ImageFont.load_default()
-                main_font_details = f"Default font (fallback) - Times error: {e}, Helvetica error: {e2}"
+                try:
+                    # Try macOS fonts (for local development)
+                    main_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 80)
+                    main_font_details = "Times.ttc at 80pt"
+                except Exception as e3:
+                    try:
+                        main_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 80)
+                        main_font_details = "Helvetica.ttc at 80pt"
+                    except Exception as e4:
+                        # Create a larger default font by scaling
+                        main_font = ImageFont.load_default()
+                        # Try to get a better size by loading default multiple times
+                        try:
+                            main_font = main_font.font_variant(size=80)
+                        except:
+                            pass
+                        main_font_details = f"Default font at maximum size - Web fonts not available"
         
-        # Load small font (60pt for city/state - increased from 40pt)
+        # Load small font (60pt for city/state - web-optimized font loading)
         try:
-            small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 60)
-            small_font_details = "Times.ttc at 60pt"
+            # Try cloud/web-friendly font paths first
+            small_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 60)
+            small_font_details = "LiberationSerif-Regular.ttf at 60pt"
         except Exception as e:
             try:
-                small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 60)
-                small_font_details = "Helvetica.ttc at 60pt"
+                # Try another common Linux font
+                small_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 60)
+                small_font_details = "DejaVuSerif.ttf at 60pt"
             except Exception as e2:
-                small_font = main_font  # Use main font as fallback
-                small_font_details = f"Using main font as fallback - Times error: {e}, Helvetica error: {e2}"
+                try:
+                    # Try macOS fonts (for local development)
+                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 60)
+                    small_font_details = "Times.ttc at 60pt"
+                except Exception as e3:
+                    try:
+                        small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 60)
+                        small_font_details = "Helvetica.ttc at 60pt"
+                    except Exception as e4:
+                        # Use main font as fallback (which should be larger)
+                        small_font = main_font
+                        small_font_details = f"Using main font as fallback - Web fonts not available"
         
         # Log font loading results once
         st.success(f"✅ Main font loaded: {main_font_details}")
