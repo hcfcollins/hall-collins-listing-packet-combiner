@@ -18,12 +18,13 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
-INSTAGRAM_VERSION = "3.1"  # Increment this when Instagram code changes
-APP_VERSION = "2.5.1"  # Main app version
-UPDATE_NOTES = "RESTORED: Back to original working Liberation Serif font that was working in Streamlit Cloud"  # Brief note about what was updated
+INSTAGRAM_VERSION = "3.2"  # Increment this when Instagram code changes
+APP_VERSION = "2.5.2"  # Main app version
+UPDATE_NOTES = "REMOVED DejaVu fonts completely - Liberation/Times/Helvetica/Default only"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.5.2": "REMOVED DejaVu fonts completely - Liberation/Times/Helvetica/Default only",
     "2.5.1": "RESTORED: Back to original working Liberation Serif font that was working in Streamlit Cloud",
     "2.5.0": "MAJOR FIX: Web-first font loading to avoid DejaVu fonts entirely in cloud deployment",
     "2.4.5": "Improved font priority to avoid DejaVu and reduced text spacing to 75px for better layout",
@@ -285,9 +286,9 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
         main_font_details = ""
         small_font_details = ""
         
-        # Load main font (65pt for street address - back to original working approach)
+        # Load main font (65pt for street address - NO DEJAVU ALLOWED)
         try:
-            # Try the original working cloud font first (this was working before!)
+            # Try the original working cloud font first
             main_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 65)
             main_font_details = "LiberationSerif-Regular.ttf at 65pt"
         except Exception as e:
@@ -300,18 +301,17 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                     main_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 65)
                     main_font_details = "Helvetica.ttc at 65pt"
                 except Exception as e3:
+                    # Use default font instead of DejaVu
+                    main_font = ImageFont.load_default()
                     try:
-                        # Last resort - DejaVu much smaller
-                        main_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 55)
-                        main_font_details = "DejaVuSerif.ttf at 55pt (fallback)"
-                    except Exception as e4:
-                        # Emergency fallback
-                        main_font = ImageFont.load_default()
-                        main_font_details = "Default font"
+                        main_font = main_font.font_variant(size=65)
+                    except:
+                        pass
+                    main_font_details = "Default system font (NO DejaVu)"
         
-        # Load small font (45pt for city/state - back to original working approach)
+        # Load small font (45pt for city/state - NO DEJAVU ALLOWED)
         try:
-            # Try the original working cloud font first (this was working before!)
+            # Try the original working cloud font first
             small_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 45)
             small_font_details = "LiberationSerif-Regular.ttf at 45pt"
         except Exception as e:
@@ -324,14 +324,9 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                     small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 45)
                     small_font_details = "Helvetica.ttc at 45pt"
                 except Exception as e3:
-                    try:
-                        # Last resort - DejaVu much smaller
-                        small_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 35)
-                        small_font_details = "DejaVuSerif.ttf at 35pt (fallback)"
-                    except Exception as e4:
-                        # Use main font as fallback
-                        small_font = main_font
-                        small_font_details = "Using main font"
+                    # Use main font as fallback instead of DejaVu
+                    small_font = main_font
+                    small_font_details = "Using main font (NO DejaVu)"
         
         # Log font loading results once
         st.success(f"✅ Main font loaded: {main_font_details}")
