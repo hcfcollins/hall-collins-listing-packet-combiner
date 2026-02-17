@@ -18,12 +18,13 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
-INSTAGRAM_VERSION = "3.5"  # Increment this when Instagram code changes
-APP_VERSION = "2.5.5"  # Main app version
-UPDATE_NOTES = "Switched to DejaVu Sans as primary font - universally available on Streamlit Cloud"  # Brief note about what was updated
+INSTAGRAM_VERSION = "3.6"  # Increment this when Instagram code changes
+APP_VERSION = "2.5.6"  # Main app version
+UPDATE_NOTES = "Added elegant font priority: Cambria, Georgia, Times New Roman, Lato, Open Sans + better serif options"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.5.6": "Added elegant font priority: Cambria, Georgia, Times New Roman, Lato, Open Sans + better serif options",
     "2.5.5": "Switched to DejaVu Sans as primary font - universally available on Streamlit Cloud",
     "2.5.4": "FIXED tiny font issue - added Liberation Sans backup and scaled up emergency default font",
     "2.5.3": "FIXED Liberation Serif loading with multiple paths to restore beautiful November font appearance",
@@ -289,23 +290,27 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
         main_font_details = ""
         small_font_details = ""
         
-        # Load main font (65pt) - Use universally available fonts for Streamlit Cloud
+        # Load main font (65pt) - Try prettier fonts first, then fall back to universals
         main_font_loaded = False
         
-        # Try common system fonts that should be available on most Linux systems
-        universal_fonts = [
-            # Standard Linux fonts that should be available
-            ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "DejaVu Sans"),
-            ("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", "Liberation Sans"),
+        # Try prettier, more elegant fonts first
+        elegant_fonts = [
+            # Microsoft fonts (if available)
+            ("/usr/share/fonts/truetype/msttcorefonts/cambria.ttf", "Cambria"),
+            ("/usr/share/fonts/truetype/msttcorefonts/georgia.ttf", "Georgia"),
+            ("/usr/share/fonts/truetype/msttcorefonts/times.ttf", "Times New Roman"),
+            # Google Fonts (sometimes available)
+            ("/usr/share/fonts/truetype/lato/Lato-Regular.ttf", "Lato"),
+            ("/usr/share/fonts/truetype/opensans/OpenSans-Regular.ttf", "Open Sans"),
+            # Linux serif alternatives
             ("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", "Liberation Serif"),
-            # Alternative paths
-            ("/usr/share/fonts/TTF/DejaVuSans.ttf", "DejaVu Sans (TTF)"),
-            ("/usr/share/fonts/dejavu/DejaVuSans.ttf", "DejaVu Sans (alt)"),
-            # Conda/pip installed fonts
-            ("/opt/conda/share/fonts/dejavu/DejaVuSans.ttf", "DejaVu Sans (conda)"),
+            ("/usr/share/fonts/truetype/libertinus/LibertinusSerif-Regular.otf", "Libertinus Serif"),
+            # Standard but clean fonts
+            ("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", "DejaVu Serif"),
+            ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "DejaVu Sans"),
         ]
         
-        for font_path, font_name in universal_fonts:
+        for font_path, font_name in elegant_fonts:
             try:
                 main_font = ImageFont.truetype(font_path, 65)
                 main_font_details = f"{font_name} at 65pt - FOUND at {font_path}"
@@ -316,34 +321,34 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
         
         if not main_font_loaded:
             try:
-                # Try macOS fonts for local development
-                main_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 65)
-                main_font_details = "Helvetica.ttc at 65pt (macOS)"
-                main_font_loaded = True
-            except Exception as e:
-                try:
-                    main_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 65)
-                    main_font_details = "Times.ttc at 65pt (macOS)"
-                    main_font_loaded = True
-                except Exception as e2:
-                    # Create a custom large font using PIL's font creation
+                # Try macOS fonts for local development (including Cambria if available)
+                for font_path, font_name in [
+                    ("/System/Library/Fonts/Cambria.ttc", "Cambria (macOS)"),
+                    ("/System/Library/Fonts/Georgia.ttf", "Georgia (macOS)"),
+                    ("/System/Library/Fonts/Times.ttc", "Times (macOS)"),
+                    ("/System/Library/Fonts/Helvetica.ttc", "Helvetica (macOS)")
+                ]:
                     try:
-                        # Use PIL's default font but create multiple instances for larger size
-                        from PIL import ImageFont
-                        main_font = ImageFont.load_default()
-                        # This is a hack but might work better than font_variant
-                        main_font_details = "PIL Default font - will try manual sizing"
+                        main_font = ImageFont.truetype(font_path, 65)
+                        main_font_details = f"{font_name} at 65pt"
                         main_font_loaded = True
+                        break
                     except:
-                        main_font = ImageFont.load_default()
-                        main_font_details = "LAST RESORT: Basic default font"
+                        continue
+            except:
+                pass
         
-        # Load small font (45pt) - Match the main universal font
+        if not main_font_loaded:
+            # Last resort - default font
+            main_font = ImageFont.load_default()
+            main_font_details = "LAST RESORT: Basic default font - no system fonts found"
+        
+        # Load small font (45pt) - Match the elegant main font
         small_font_loaded = False
         
-        # If we successfully loaded a universal font for main font, use same for small font
-        if main_font_loaded and ("DejaVu" in main_font_details or "Liberation" in main_font_details):
-            for font_path, font_name in universal_fonts:
+        # If we successfully loaded an elegant font for main font, use same for small font
+        if main_font_loaded and not "default" in main_font_details.lower():
+            for font_path, font_name in elegant_fonts:
                 try:
                     small_font = ImageFont.truetype(font_path, 45)
                     small_font_details = f"{font_name} at 45pt - FOUND at {font_path}"
@@ -355,33 +360,42 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
         if not small_font_loaded:
             try:
                 # Try macOS fonts for local development
-                small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 45)
-                small_font_details = "Helvetica.ttc at 45pt (macOS)"
-                small_font_loaded = True
-            except Exception as e:
-                try:
-                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 45)
-                    small_font_details = "Times.ttc at 45pt (macOS)"
-                    small_font_loaded = True
-                except Exception as e2:
-                    # Use the main font as fallback (should be larger than tiny default)
-                    small_font = main_font
-                    small_font_details = "Using main font as fallback to avoid tiny text"
+                for font_path, font_name in [
+                    ("/System/Library/Fonts/Cambria.ttc", "Cambria (macOS)"),
+                    ("/System/Library/Fonts/Georgia.ttf", "Georgia (macOS)"),
+                    ("/System/Library/Fonts/Times.ttc", "Times (macOS)"),
+                    ("/System/Library/Fonts/Helvetica.ttc", "Helvetica (macOS)")
+                ]:
+                    try:
+                        small_font = ImageFont.truetype(font_path, 45)
+                        small_font_details = f"{font_name} at 45pt"
+                        small_font_loaded = True
+                        break
+                    except:
+                        continue
+            except:
+                pass
+        
+        if not small_font_loaded:
+            # Use the main font as fallback
+            small_font = main_font
+            small_font_details = "Using main font as fallback"
         
         # Log font loading results with detailed debugging
         st.success(f"✅ Main font loaded: {main_font_details}")
         st.success(f"✅ Small font loaded: {small_font_details}")
         
-        # Additional debugging - show what fonts are actually available
-        if "default" in main_font_details.lower():
-            st.error("🚨 WARNING: Using default font - NO system fonts found!")
-            st.info("🔍 Debug: Will attempt to detect actual font size in rendered text...")
-        elif "DejaVu" in main_font_details:
-            st.success("✨ Using DejaVu font - should be properly sized!")
-        elif "Liberation" in main_font_details:
-            st.success("✨ Using Liberation font - should look great!")
+        # Show font quality level
+        if any(elegant in main_font_details for elegant in ["Cambria", "Georgia", "Times New Roman", "Lato", "Open Sans"]):
+            st.success("🎨 PREMIUM FONT: Using elegant typography!")
+        elif any(good in main_font_details for good in ["Liberation Serif", "Libertinus", "DejaVu Serif"]):
+            st.info("✨ GOOD FONT: Using professional serif font")
+        elif "DejaVu Sans" in main_font_details:
+            st.info("📝 STANDARD FONT: Using clean sans-serif")
         elif "macOS" in main_font_details:
             st.info("🍎 Using macOS system font - testing locally")
+        elif "default" in main_font_details.lower():
+            st.error("⚠️ BASIC FONT: No system fonts available - text may be small")
         
         for template_file, post_type, text_alignment, text_x, text_y, text_color in templates:
             if not os.path.exists(template_file):
