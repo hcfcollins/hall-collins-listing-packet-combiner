@@ -18,12 +18,13 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
-INSTAGRAM_VERSION = "3.4"  # Increment this when Instagram code changes
-APP_VERSION = "2.5.4"  # Main app version
-UPDATE_NOTES = "FIXED tiny font issue - added Liberation Sans backup and scaled up emergency default font"  # Brief note about what was updated
+INSTAGRAM_VERSION = "3.5"  # Increment this when Instagram code changes
+APP_VERSION = "2.5.5"  # Main app version
+UPDATE_NOTES = "Switched to DejaVu Sans as primary font - universally available on Streamlit Cloud"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.5.5": "Switched to DejaVu Sans as primary font - universally available on Streamlit Cloud",
     "2.5.4": "FIXED tiny font issue - added Liberation Sans backup and scaled up emergency default font",
     "2.5.3": "FIXED Liberation Serif loading with multiple paths to restore beautiful November font appearance",
     "2.5.2": "REMOVED DejaVu fonts completely - Liberation/Times/Helvetica/Default only",
@@ -288,61 +289,64 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
         main_font_details = ""
         small_font_details = ""
         
-        # Load main font (65pt) - Fix tiny font issue with better fallbacks
+        # Load main font (65pt) - Use universally available fonts for Streamlit Cloud
         main_font_loaded = False
         
-        # Try Liberation fonts (both Serif and Sans) - these should be on Streamlit Cloud
-        liberation_fonts = [
-            ("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", "Liberation Serif"),
+        # Try common system fonts that should be available on most Linux systems
+        universal_fonts = [
+            # Standard Linux fonts that should be available
+            ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "DejaVu Sans"),
             ("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", "Liberation Sans"),
-            ("/usr/share/fonts/TTF/LiberationSerif-Regular.ttf", "Liberation Serif (TTF)"),
-            ("/usr/share/fonts/TTF/LiberationSans-Regular.ttf", "Liberation Sans (TTF)"),
-            ("/usr/share/fonts/liberation/LiberationSerif-Regular.ttf", "Liberation Serif (alt)"),
-            ("/usr/share/fonts/liberation/LiberationSans-Regular.ttf", "Liberation Sans (alt)"),
-            ("/opt/conda/share/fonts/liberation/LiberationSerif-Regular.ttf", "Liberation Serif (conda)")
+            ("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", "Liberation Serif"),
+            # Alternative paths
+            ("/usr/share/fonts/TTF/DejaVuSans.ttf", "DejaVu Sans (TTF)"),
+            ("/usr/share/fonts/dejavu/DejaVuSans.ttf", "DejaVu Sans (alt)"),
+            # Conda/pip installed fonts
+            ("/opt/conda/share/fonts/dejavu/DejaVuSans.ttf", "DejaVu Sans (conda)"),
         ]
         
-        for font_path, font_name in liberation_fonts:
+        for font_path, font_name in universal_fonts:
             try:
                 main_font = ImageFont.truetype(font_path, 65)
-                main_font_details = f"{font_name} at 65pt from {font_path}"
+                main_font_details = f"{font_name} at 65pt - FOUND at {font_path}"
                 main_font_loaded = True
                 break
-            except:
+            except Exception as e:
                 continue
         
         if not main_font_loaded:
             try:
                 # Try macOS fonts for local development
-                main_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 65)
-                main_font_details = "Times.ttc at 65pt (macOS)"
+                main_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 65)
+                main_font_details = "Helvetica.ttc at 65pt (macOS)"
                 main_font_loaded = True
             except Exception as e:
                 try:
-                    main_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 65)
-                    main_font_details = "Helvetica.ttc at 65pt (macOS)"
+                    main_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 65)
+                    main_font_details = "Times.ttc at 65pt (macOS)"
                     main_font_loaded = True
                 except Exception as e2:
-                    # EMERGENCY: Make default font much larger to avoid tiny text
-                    main_font = ImageFont.load_default()
-                    # Try to scale it up significantly
+                    # Create a custom large font using PIL's font creation
                     try:
-                        # Create a much larger version by loading multiple times
-                        for i in range(8):  # Make it 8x larger
-                            main_font = ImageFont.load_default()
+                        # Use PIL's default font but create multiple instances for larger size
+                        from PIL import ImageFont
+                        main_font = ImageFont.load_default()
+                        # This is a hack but might work better than font_variant
+                        main_font_details = "PIL Default font - will try manual sizing"
+                        main_font_loaded = True
                     except:
-                        pass
-                    main_font_details = "EMERGENCY: Scaled up default font - Liberation fonts failed!"
+                        main_font = ImageFont.load_default()
+                        main_font_details = "LAST RESORT: Basic default font"
         
-        # Load small font (45pt) - Match the main Liberation font or make default larger
+        # Load small font (45pt) - Match the main universal font
         small_font_loaded = False
         
-        # If we successfully loaded Liberation font for main font, use same for small font
-        if main_font_loaded and ("Liberation" in main_font_details):
-            for font_path, font_name in liberation_fonts:
+        # If we successfully loaded a universal font for main font, use same for small font
+        if main_font_loaded and ("DejaVu" in main_font_details or "Liberation" in main_font_details):
+            for font_path, font_name in universal_fonts:
                 try:
                     small_font = ImageFont.truetype(font_path, 45)
-                    small_font_details = f"{font_name} at 45pt"
+                    small_font_details = f"{font_name} at 45pt - FOUND at {font_path}"
                     small_font_loaded = True
                     break
                 except:
@@ -351,28 +355,33 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
         if not small_font_loaded:
             try:
                 # Try macOS fonts for local development
-                small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 45)
-                small_font_details = "Times.ttc at 45pt (macOS)"
+                small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 45)
+                small_font_details = "Helvetica.ttc at 45pt (macOS)"
                 small_font_loaded = True
             except Exception as e:
                 try:
-                    small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 45)
-                    small_font_details = "Helvetica.ttc at 45pt (macOS)"
+                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 45)
+                    small_font_details = "Times.ttc at 45pt (macOS)"
                     small_font_loaded = True
                 except Exception as e2:
                     # Use the main font as fallback (should be larger than tiny default)
                     small_font = main_font
                     small_font_details = "Using main font as fallback to avoid tiny text"
         
-        # Log font loading results with more detail
+        # Log font loading results with detailed debugging
         st.success(f"✅ Main font loaded: {main_font_details}")
         st.success(f"✅ Small font loaded: {small_font_details}")
         
-        # Additional debugging - show if we're using tiny default fonts
+        # Additional debugging - show what fonts are actually available
         if "default" in main_font_details.lower():
-            st.error("🚨 WARNING: Using default font - Liberation fonts not available on this system!")
-        if "Liberation" in main_font_details:
-            st.info("✨ Using Liberation font - this should look great!")
+            st.error("🚨 WARNING: Using default font - NO system fonts found!")
+            st.info("🔍 Debug: Will attempt to detect actual font size in rendered text...")
+        elif "DejaVu" in main_font_details:
+            st.success("✨ Using DejaVu font - should be properly sized!")
+        elif "Liberation" in main_font_details:
+            st.success("✨ Using Liberation font - should look great!")
+        elif "macOS" in main_font_details:
+            st.info("🍎 Using macOS system font - testing locally")
         
         for template_file, post_type, text_alignment, text_x, text_y, text_color in templates:
             if not os.path.exists(template_file):
