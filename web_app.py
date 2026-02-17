@@ -18,12 +18,13 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
-INSTAGRAM_VERSION = "3.6"  # Increment this when Instagram code changes
-APP_VERSION = "2.5.6"  # Main app version
-UPDATE_NOTES = "Added elegant font priority: Cambria, Georgia, Times New Roman, Lato, Open Sans + better serif options"  # Brief note about what was updated
+INSTAGRAM_VERSION = "3.7"  # Increment this when Instagram code changes
+APP_VERSION = "2.5.7"  # Main app version
+UPDATE_NOTES = "Updated Instagram file naming: 'Instagram - Sold/New/Under Contract - [Address].png' for better organization"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.5.7": "Updated Instagram file naming: 'Instagram - Sold/New/Under Contract - [Address].png' for better organization",
     "2.5.6": "Added elegant font priority: Cambria, Georgia, Times New Roman, Lato, Open Sans + better serif options",
     "2.5.5": "Switched to DejaVu Sans as primary font - universally available on Streamlit Cloud",
     "2.5.4": "FIXED tiny font issue - added Liberation Sans backup and scaled up emergency default font",
@@ -513,7 +514,7 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                 instagram_post.save(output_buffer, format='PNG', quality=95)
                 
                 created_files.append({
-                    'name': f"{street_address} - {post_type} - Instagram.png",
+                    'name': f"Instagram - {post_type} - {street_address}.png",
                     'data': output_buffer.getvalue(),
                     'type': post_type
                 })
