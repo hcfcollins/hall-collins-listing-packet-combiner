@@ -1034,7 +1034,11 @@ if not logo_loaded:
 
 # Subtitle
 tk.Label(scrollable_frame, text="Professional Real Estate Listing Packet Creator",
-         font=('System', 12), bg='#f0f0f0', fg='#666').pack(pady=(0, 20))
+         font=('System', 12), bg='#f0f0f0', fg='#666').pack(pady=(0, 2))
+
+# Version note
+tk.Label(scrollable_frame, text="v1.4.0  •  Instagram posts now use same font as cover sheet",
+         font=('System', 9), bg='#f0f0f0', fg='#999999').pack(pady=(0, 16))
 
 # Select button
 tk.Button(scrollable_frame, text="📁 Select PDF, JPG or ZIP Files", command=select_and_process_files,
