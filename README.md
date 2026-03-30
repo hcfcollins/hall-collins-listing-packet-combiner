@@ -131,3 +131,15 @@ For technical support or questions:
 - Check the troubleshooting documentation
 - Run diagnostic commands
 - Contact Hall Collins IT support
+
+---
+
+## 📋 Version History
+
+| Version | Date | Notes |
+|---------|------|-------|
+| v1.4.0 | 2026-03-30 | **Instagram font fix** — Instagram posts now use the same Times New Roman font path as the cover sheet (`/System/Library/Fonts/Supplemental/Times New Roman.ttf`) for consistent, reliable typography across all outputs |
+| v1.3.0 | 2025-08-07 | Added Instagram post generation (New Listing, Under Contract, Sold templates) |
+| v1.2.0 | 2025-08-07 | Added custom Hall Collins cover page with property photo, logo overlay, and address text |
+| v1.1.0 | 2025-08-07 | Added JPG to PDF conversion, ZIP file extraction, recent Downloads panel |
+| v1.0.0 | 2025-08-07 | Initial release — PDF combining with Hall Collins branding |
