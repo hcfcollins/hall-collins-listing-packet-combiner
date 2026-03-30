@@ -356,16 +356,21 @@ def create_instagram_posts(photo_path, street_address, city_state, output_dir):
                     try:
                         draw = ImageDraw.Draw(instagram_post)
                         
-                        # Try to load a font - fall back to default if needed
-                        try:
-                            # Try to use a system font - size 59 (51 * 1.15) for additional 15% increase
-                            font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 59)
-                        except:
-                            try:
-                                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 59)
-                            except:
-                                # Fall back to default font
-                                font = ImageFont.load_default()
+                        # Load Times New Roman using the same reliable path as the cover sheet
+                        FONT_PATHS = [
+                            "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
+                            "/System/Library/Fonts/Times.ttc",
+                        ]
+                        font = None
+                        for fp in FONT_PATHS:
+                            if os.path.exists(fp):
+                                try:
+                                    font = ImageFont.truetype(fp, 59)
+                                    break
+                                except:
+                                    continue
+                        if font is None:
+                            font = ImageFont.load_default()
                         
                         # Convert street address to uppercase for consistent branding
                         street_address_upper = street_address.upper()
@@ -392,14 +397,17 @@ def create_instagram_posts(photo_path, street_address, city_state, output_dir):
                         # Add city/state below street address if available
                         if city_state:
                             try:
-                                # Use smaller font for city/state
-                                try:
-                                    small_font = ImageFont.truetype("/System/Library/Fonts/Times.ttc", 40)  # 35 * 1.15 for additional 15% increase
-                                except:
-                                    try:
-                                        small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 40)  # 35 * 1.15 for additional 15% increase
-                                    except:
-                                        small_font = font  # Use same font if others fail
+                                # Use smaller font for city/state - same reliable path
+                                small_font = None
+                                for fp in FONT_PATHS:
+                                    if os.path.exists(fp):
+                                        try:
+                                            small_font = ImageFont.truetype(fp, 40)
+                                            break
+                                        except:
+                                            continue
+                                if small_font is None:
+                                    small_font = font  # Use same font if others fail
                                 
                                 # Convert city/state to uppercase for consistent branding
                                 city_state_upper = city_state.upper()
