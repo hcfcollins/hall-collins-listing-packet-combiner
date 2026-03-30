@@ -18,12 +18,13 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
-INSTAGRAM_VERSION = "3.7"  # Increment this when Instagram code changes
-APP_VERSION = "2.5.7"  # Main app version
-UPDATE_NOTES = "Updated Instagram file naming: 'Instagram - Sold/New/Under Contract - [Address].png' for better organization"  # Brief note about what was updated
+INSTAGRAM_VERSION = "3.8"  # Increment this when Instagram code changes
+APP_VERSION = "2.5.8"  # Main app version
+UPDATE_NOTES = "Instagram posts now use same Times New Roman font as the cover sheet for consistent branding"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.5.8": "Instagram posts now use same Times New Roman font as the cover sheet for consistent branding",
     "2.5.7": "Updated Instagram file naming: 'Instagram - Sold/New/Under Contract - [Address].png' for better organization",
     "2.5.6": "Added elegant font priority: Cambria, Georgia, Times New Roman, Lato, Open Sans + better serif options",
     "2.5.5": "Switched to DejaVu Sans as primary font - universally available on Streamlit Cloud",
@@ -322,8 +323,9 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
         
         if not main_font_loaded:
             try:
-                # Try macOS fonts for local development (including Cambria if available)
+                # Try macOS fonts for local development - Times New Roman.ttf is most reliable
                 for font_path, font_name in [
+                    ("/System/Library/Fonts/Supplemental/Times New Roman.ttf", "Times New Roman (macOS)"),
                     ("/System/Library/Fonts/Cambria.ttc", "Cambria (macOS)"),
                     ("/System/Library/Fonts/Georgia.ttf", "Georgia (macOS)"),
                     ("/System/Library/Fonts/Times.ttc", "Times (macOS)"),
@@ -360,8 +362,9 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
         
         if not small_font_loaded:
             try:
-                # Try macOS fonts for local development
+                # Try macOS fonts for local development - Times New Roman.ttf is most reliable
                 for font_path, font_name in [
+                    ("/System/Library/Fonts/Supplemental/Times New Roman.ttf", "Times New Roman (macOS)"),
                     ("/System/Library/Fonts/Cambria.ttc", "Cambria (macOS)"),
                     ("/System/Library/Fonts/Georgia.ttf", "Georgia (macOS)"),
                     ("/System/Library/Fonts/Times.ttc", "Times (macOS)"),
