@@ -18,12 +18,13 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
-INSTAGRAM_VERSION = "3.8"  # Increment this when Instagram code changes
-APP_VERSION = "2.5.8"  # Main app version
-UPDATE_NOTES = "Instagram posts now use same Times New Roman font as the cover sheet for consistent branding"  # Brief note about what was updated
+INSTAGRAM_VERSION = "3.9"  # Increment this when Instagram code changes
+APP_VERSION = "2.5.9"  # Main app version
+UPDATE_NOTES = "Fixed Instagram fonts: bundled Georgia.ttf in repo for consistent rendering on all platforms"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.5.9": "Fixed Instagram fonts: bundled Georgia.ttf in repo for consistent rendering on all platforms",
     "2.5.8": "Instagram posts now use same Times New Roman font as the cover sheet for consistent branding",
     "2.5.7": "Updated Instagram file naming: 'Instagram - Sold/New/Under Contract - [Address].png' for better organization",
     "2.5.6": "Added elegant font priority: Cambria, Georgia, Times New Roman, Lato, Open Sans + better serif options",
@@ -292,114 +293,75 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
         main_font_details = ""
         small_font_details = ""
         
-        # Load main font (65pt) - Try prettier fonts first, then fall back to universals
+        # ── Bundled font (always available, works on Streamlit Cloud + macOS + everywhere) ──
+        # Georgia.ttf is stored in the repo's fonts/ folder for guaranteed availability
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        bundled_font_path = os.path.join(script_dir, "fonts", "Georgia.ttf")
+        
+        # Load main font (65pt)
         main_font_loaded = False
+        try:
+            main_font = ImageFont.truetype(bundled_font_path, 65)
+            main_font_details = "Georgia (bundled) at 65pt"
+            main_font_loaded = True
+        except Exception as e:
+            pass  # fall through to system fonts below
         
-        # Try prettier, more elegant fonts first
-        elegant_fonts = [
-            # Microsoft fonts (if available)
-            ("/usr/share/fonts/truetype/msttcorefonts/cambria.ttf", "Cambria"),
-            ("/usr/share/fonts/truetype/msttcorefonts/georgia.ttf", "Georgia"),
-            ("/usr/share/fonts/truetype/msttcorefonts/times.ttf", "Times New Roman"),
-            # Google Fonts (sometimes available)
-            ("/usr/share/fonts/truetype/lato/Lato-Regular.ttf", "Lato"),
-            ("/usr/share/fonts/truetype/opensans/OpenSans-Regular.ttf", "Open Sans"),
-            # Linux serif alternatives
-            ("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", "Liberation Serif"),
-            ("/usr/share/fonts/truetype/libertinus/LibertinusSerif-Regular.otf", "Libertinus Serif"),
-            # Standard but clean fonts
-            ("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", "DejaVu Serif"),
-            ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "DejaVu Sans"),
-        ]
-        
-        for font_path, font_name in elegant_fonts:
-            try:
-                main_font = ImageFont.truetype(font_path, 65)
-                main_font_details = f"{font_name} at 65pt - FOUND at {font_path}"
-                main_font_loaded = True
-                break
-            except Exception as e:
-                continue
+        # System font fallbacks (only used if bundled font somehow missing)
+        if not main_font_loaded:
+            system_fonts = [
+                # macOS
+                ("/System/Library/Fonts/Supplemental/Georgia.ttf", "Georgia (macOS)"),
+                ("/System/Library/Fonts/Supplemental/Times New Roman.ttf", "Times New Roman (macOS)"),
+                ("/System/Library/Fonts/Times.ttc", "Times (macOS)"),
+                # Linux
+                ("/usr/share/fonts/truetype/msttcorefonts/georgia.ttf", "Georgia (Linux)"),
+                ("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", "Liberation Serif"),
+                ("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", "DejaVu Serif"),
+            ]
+            for font_path, font_name in system_fonts:
+                try:
+                    main_font = ImageFont.truetype(font_path, 65)
+                    main_font_details = f"{font_name} at 65pt"
+                    main_font_loaded = True
+                    break
+                except Exception:
+                    continue
         
         if not main_font_loaded:
-            try:
-                # Try macOS fonts for local development - Times New Roman.ttf is most reliable
-                for font_path, font_name in [
-                    ("/System/Library/Fonts/Supplemental/Times New Roman.ttf", "Times New Roman (macOS)"),
-                    ("/System/Library/Fonts/Cambria.ttc", "Cambria (macOS)"),
-                    ("/System/Library/Fonts/Georgia.ttf", "Georgia (macOS)"),
-                    ("/System/Library/Fonts/Times.ttc", "Times (macOS)"),
-                    ("/System/Library/Fonts/Helvetica.ttc", "Helvetica (macOS)")
-                ]:
-                    try:
-                        main_font = ImageFont.truetype(font_path, 65)
-                        main_font_details = f"{font_name} at 65pt"
-                        main_font_loaded = True
-                        break
-                    except:
-                        continue
-            except:
-                pass
-        
-        if not main_font_loaded:
-            # Last resort - default font
             main_font = ImageFont.load_default()
-            main_font_details = "LAST RESORT: Basic default font - no system fonts found"
+            main_font_details = "LAST RESORT: Default font (bundled font missing!)"
         
-        # Load small font (45pt) - Match the elegant main font
+        # Load small font (45pt) using same bundled font
         small_font_loaded = False
+        try:
+            small_font = ImageFont.truetype(bundled_font_path, 45)
+            small_font_details = "Georgia (bundled) at 45pt"
+            small_font_loaded = True
+        except Exception:
+            pass
         
-        # If we successfully loaded an elegant font for main font, use same for small font
-        if main_font_loaded and not "default" in main_font_details.lower():
-            for font_path, font_name in elegant_fonts:
+        if not small_font_loaded:
+            # Try system fallbacks for small font
+            for font_path, font_name in [
+                ("/System/Library/Fonts/Supplemental/Georgia.ttf", "Georgia (macOS)"),
+                ("/System/Library/Fonts/Supplemental/Times New Roman.ttf", "Times New Roman (macOS)"),
+                ("/System/Library/Fonts/Times.ttc", "Times (macOS)"),
+                ("/usr/share/fonts/truetype/msttcorefonts/georgia.ttf", "Georgia (Linux)"),
+                ("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", "Liberation Serif"),
+                ("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", "DejaVu Serif"),
+            ]:
                 try:
                     small_font = ImageFont.truetype(font_path, 45)
-                    small_font_details = f"{font_name} at 45pt - FOUND at {font_path}"
+                    small_font_details = f"{font_name} at 45pt"
                     small_font_loaded = True
                     break
-                except:
+                except Exception:
                     continue
         
         if not small_font_loaded:
-            try:
-                # Try macOS fonts for local development - Times New Roman.ttf is most reliable
-                for font_path, font_name in [
-                    ("/System/Library/Fonts/Supplemental/Times New Roman.ttf", "Times New Roman (macOS)"),
-                    ("/System/Library/Fonts/Cambria.ttc", "Cambria (macOS)"),
-                    ("/System/Library/Fonts/Georgia.ttf", "Georgia (macOS)"),
-                    ("/System/Library/Fonts/Times.ttc", "Times (macOS)"),
-                    ("/System/Library/Fonts/Helvetica.ttc", "Helvetica (macOS)")
-                ]:
-                    try:
-                        small_font = ImageFont.truetype(font_path, 45)
-                        small_font_details = f"{font_name} at 45pt"
-                        small_font_loaded = True
-                        break
-                    except:
-                        continue
-            except:
-                pass
-        
-        if not small_font_loaded:
-            # Use the main font as fallback
             small_font = main_font
             small_font_details = "Using main font as fallback"
-        
-        # Log font loading results with detailed debugging
-        st.success(f"✅ Main font loaded: {main_font_details}")
-        st.success(f"✅ Small font loaded: {small_font_details}")
-        
-        # Show font quality level
-        if any(elegant in main_font_details for elegant in ["Cambria", "Georgia", "Times New Roman", "Lato", "Open Sans"]):
-            st.success("🎨 PREMIUM FONT: Using elegant typography!")
-        elif any(good in main_font_details for good in ["Liberation Serif", "Libertinus", "DejaVu Serif"]):
-            st.info("✨ GOOD FONT: Using professional serif font")
-        elif "DejaVu Sans" in main_font_details:
-            st.info("📝 STANDARD FONT: Using clean sans-serif")
-        elif "macOS" in main_font_details:
-            st.info("🍎 Using macOS system font - testing locally")
-        elif "default" in main_font_details.lower():
-            st.error("⚠️ BASIC FONT: No system fonts available - text may be small")
         
         for template_file, post_type, text_alignment, text_x, text_y, text_color in templates:
             if not os.path.exists(template_file):
@@ -457,7 +419,6 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                         
                         # Use pre-loaded font
                         font = main_font
-                        st.info(f"🔍 {post_type} - Using font: {main_font_details}")
                         
                         # Convert street address to uppercase for consistent branding
                         street_address_upper = street_address.upper()
@@ -480,15 +441,13 @@ def create_instagram_posts(photo_bytes, street_address, city_state):
                         # Add street address text with specified color
                         text_bbox = draw.textbbox((0, 0), street_address_upper, font=font)
                         rendered_text_height = text_bbox[3] - text_bbox[1]
-                        st.info(f"🔍 {post_type} - Street address height: {rendered_text_height}px (expected ~70px for 70pt font)")
                         draw.text(text_position, street_address_upper, fill=text_color, font=font)
                         
                         # Add city/state below street address if available
                         if city_state:
                             try:
-                                # Use pre-loaded small font and reduce spacing
+                                # Use pre-loaded small font
                                 city_font = small_font
-                                st.info(f"🔍 {post_type} - Using small font: {small_font_details}")
                                 
                                 # Convert city/state to uppercase for consistent branding
                                 city_state_upper = city_state.upper()
