@@ -18,12 +18,14 @@ import PyPDF2
 COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
+QRCODE_AVAILABLE = False
 INSTAGRAM_VERSION = "3.9"  # Increment this when Instagram code changes
-APP_VERSION = "2.6.0"  # Main app version
-UPDATE_NOTES = "Added agent cover template selector: choose Standard, Rachel, or Andrew"  # Brief note about what was updated
+APP_VERSION = "2.7.0"  # Main app version
+UPDATE_NOTES = "Added QR code support: paste any URL to add a scannable QR code to the cover page"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.7.0": "Added QR code support: paste any URL to add a scannable QR code to the cover page",
     "2.6.0": "Added agent cover template selector: choose Standard, Rachel, or Andrew",
     "2.5.9": "Fixed Instagram fonts: bundled Georgia.ttf in repo for consistent rendering on all platforms",
     "2.5.8": "Instagram posts now use same Times New Roman font as the cover sheet for consistent branding",
@@ -71,6 +73,13 @@ try:
 except Exception:
     PIL_AVAILABLE = False
 
+# Test qrcode
+try:
+    import qrcode
+    QRCODE_AVAILABLE = True
+except Exception:
+    QRCODE_AVAILABLE = False
+
 # Final determination
 COVER_AVAILABLE = REPORTLAB_AVAILABLE and PIL_AVAILABLE
 
@@ -95,7 +104,7 @@ def parse_address(full_address):
     
     return street, city_state
 
-def create_cover_page(photo_bytes, street_address, city_state, output_path, cover_agent="Standard"):
+def create_cover_page(photo_bytes, street_address, city_state, output_path, cover_agent="Standard", qr_url=""):
     """Create custom cover page matching the original desktop app design"""
     if not COVER_AVAILABLE:
         return False
@@ -245,6 +254,34 @@ def create_cover_page(photo_bytes, street_address, city_state, output_path, cove
                 c.drawString(x_position, 2.58 * inch, city_state_upper)
             except Exception as text_e:
                 st.warning(f"Could not add city/state: {text_e}")
+        
+        # Add QR code in the bottom-right corner if a URL was provided
+        if qr_url and qr_url.strip() and QRCODE_AVAILABLE:
+            try:
+                import qrcode as qr_lib
+                qr = qr_lib.QRCode(
+                    version=1,
+                    error_correction=qr_lib.constants.ERROR_CORRECT_H,
+                    box_size=10,
+                    border=2,
+                )
+                qr.add_data(qr_url.strip())
+                qr.make(fit=True)
+                qr_img = qr.make_image(fill_color="black", back_color="white")
+                
+                # Save QR code to temp file
+                temp_qr = tempfile.mktemp(suffix='_qr.png')
+                qr_img.save(temp_qr)
+                
+                # Place in bottom-right of the lower band (below the photo)
+                # Lower band is bottom 3.88" of the page; QR sits 0.2" from right, 0.2" from bottom
+                qr_size = 1.1 * inch
+                qr_x = page_width - qr_size - 0.2 * inch
+                qr_y = 0.2 * inch
+                c.drawImage(temp_qr, qr_x, qr_y, width=qr_size, height=qr_size)
+                os.unlink(temp_qr)
+            except Exception as qr_e:
+                st.warning(f"Could not add QR code: {qr_e}")
         
         # Save the PDF
         c.save()
@@ -555,7 +592,7 @@ def compress_pdf(pdf_bytes, target_size_mb=20):
         st.warning(f"Could not compress PDF: {e}. Using original file.")
         return pdf_bytes
 
-def create_packet(pdf_files, street_address, city_state, cover_photo_bytes, include_cover, compress_pdf_option=True, cover_agent="Standard"):
+def create_packet(pdf_files, street_address, city_state, cover_photo_bytes, include_cover, compress_pdf_option=True, cover_agent="Standard", qr_url=""):
     """Create the final PDF packet"""
     try:
         merger = PdfMerger()
@@ -563,7 +600,7 @@ def create_packet(pdf_files, street_address, city_state, cover_photo_bytes, incl
         # Add cover page if requested
         if include_cover and cover_photo_bytes and COVER_AVAILABLE:
             cover_path = tempfile.mktemp(suffix='_cover.pdf')
-            if create_cover_page(cover_photo_bytes, street_address, city_state, cover_path, cover_agent):
+            if create_cover_page(cover_photo_bytes, street_address, city_state, cover_path, cover_agent, qr_url):
                 with open(cover_path, 'rb') as f:
                     merger.append(f)
                 os.unlink(cover_path)
@@ -738,11 +775,17 @@ def main():
         
         # Agent template selector (only shown when cover page is enabled)
         cover_agent = "Standard"
+        qr_url = ""
         if include_cover and COVER_AVAILABLE:
             cover_agent = st.selectbox(
                 "👤 Agent Cover Template",
                 options=["Standard", "Rachel", "Andrew"],
                 help="Select the agent-specific cover template. 'Standard' uses the default Hall Collins template."
+            )
+            qr_url = st.text_input(
+                "🔗 QR Code URL (optional)",
+                placeholder="https://www.hallcollins.com/listings/123-main-street",
+                help="Enter a URL to add a scannable QR code to the bottom-right corner of the cover page. Leave blank to skip."
             )
     
     with settings_col2:
@@ -948,7 +991,8 @@ def main():
                             cover_photo_bytes, 
                             include_cover,
                             compress_pdf_option,
-                            cover_agent
+                            cover_agent,
+                            qr_url
                         )
                         
                         # Create Instagram posts if requested
