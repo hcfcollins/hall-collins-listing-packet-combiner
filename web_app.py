@@ -255,7 +255,7 @@ def create_cover_page(photo_bytes, street_address, city_state, output_path, cove
             except Exception as text_e:
                 st.warning(f"Could not add city/state: {text_e}")
         
-        # Add QR code in the bottom-right corner if a URL was provided
+        # Add QR code if a URL was provided
         if qr_url and qr_url.strip() and QRCODE_AVAILABLE:
             try:
                 import qrcode as qr_lib
@@ -273,11 +273,24 @@ def create_cover_page(photo_bytes, street_address, city_state, output_path, cove
                 temp_qr = tempfile.mktemp(suffix='_qr.png')
                 qr_img.save(temp_qr)
                 
-                # Place in bottom-right of the lower band (below the photo)
-                # Lower band is bottom 3.88" of the page; QR sits 0.2" from right, 0.2" from bottom
-                qr_size = 1.1 * inch
-                qr_x = page_width - qr_size - 0.2 * inch
-                qr_y = 0.2 * inch
+                if cover_agent in ("Rachel", "Andrew"):
+                    # Agent templates: center QR code in the white contact info bar
+                    # White bar spans 0.665" to 2.337" from bottom, center at 1.502" from bottom
+                    white_bar_bottom = 0.665 * inch
+                    white_bar_top = 2.337 * inch
+                    white_bar_center_y = (white_bar_bottom + white_bar_top) / 2  # 1.502" from bottom
+                    white_bar_height = white_bar_top - white_bar_bottom          # 1.672"
+                    
+                    # QR size = 80% of bar height so it fits with a little breathing room
+                    qr_size = white_bar_height * 0.80
+                    qr_x = page_width - qr_size - 0.35 * inch  # right side, 0.35" from edge
+                    qr_y = white_bar_center_y - (qr_size / 2)  # vertically centered in bar
+                else:
+                    # Standard template: bottom-right corner fallback
+                    qr_size = 1.1 * inch
+                    qr_x = page_width - qr_size - 0.2 * inch
+                    qr_y = 0.2 * inch
+                
                 c.drawImage(temp_qr, qr_x, qr_y, width=qr_size, height=qr_size)
                 os.unlink(temp_qr)
             except Exception as qr_e:
