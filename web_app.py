@@ -19,11 +19,12 @@ COVER_AVAILABLE = False
 PIL_AVAILABLE = False
 REPORTLAB_AVAILABLE = False
 INSTAGRAM_VERSION = "3.9"  # Increment this when Instagram code changes
-APP_VERSION = "2.5.9"  # Main app version
-UPDATE_NOTES = "Fixed Instagram fonts: bundled Georgia.ttf in repo for consistent rendering on all platforms"  # Brief note about what was updated
+APP_VERSION = "2.6.0"  # Main app version
+UPDATE_NOTES = "Added agent cover template selector: choose Standard, Rachel, or Andrew"  # Brief note about what was updated
 
 # Version history for dropdown
 VERSION_HISTORY = {
+    "2.6.0": "Added agent cover template selector: choose Standard, Rachel, or Andrew",
     "2.5.9": "Fixed Instagram fonts: bundled Georgia.ttf in repo for consistent rendering on all platforms",
     "2.5.8": "Instagram posts now use same Times New Roman font as the cover sheet for consistent branding",
     "2.5.7": "Updated Instagram file naming: 'Instagram - Sold/New/Under Contract - [Address].png' for better organization",
@@ -94,10 +95,17 @@ def parse_address(full_address):
     
     return street, city_state
 
-def create_cover_page(photo_bytes, street_address, city_state, output_path):
+def create_cover_page(photo_bytes, street_address, city_state, output_path, cover_agent="Standard"):
     """Create custom cover page matching the original desktop app design"""
     if not COVER_AVAILABLE:
         return False
+    
+    # Map agent selection to template file
+    agent_templates = {
+        "Standard": "templates/1) HC -  Template Bottom Photo.png",
+        "Rachel":   "templates/2) Rachel - Template Bottom Photo.png",
+        "Andrew":   "templates/3) Andrew - Template Bottom Photo.png",
+    }
     
     try:
         # Use standard letter size - 8.5" x 11"
@@ -107,8 +115,8 @@ def create_cover_page(photo_bytes, street_address, city_state, output_path):
         # Create the PDF
         c = canvas.Canvas(output_path, pagesize=(page_width, page_height))
         
-        # First, draw the Hall Collins template as the base (full page)
-        template_image_path = "templates/1) HC -  Template Bottom Photo.png"
+        # First, draw the agent-specific template as the base (full page)
+        template_image_path = agent_templates.get(cover_agent, agent_templates["Standard"])
         if os.path.exists(template_image_path):
             try:
                 # Draw the complete template first - covers entire page
@@ -547,7 +555,7 @@ def compress_pdf(pdf_bytes, target_size_mb=20):
         st.warning(f"Could not compress PDF: {e}. Using original file.")
         return pdf_bytes
 
-def create_packet(pdf_files, street_address, city_state, cover_photo_bytes, include_cover, compress_pdf_option=True):
+def create_packet(pdf_files, street_address, city_state, cover_photo_bytes, include_cover, compress_pdf_option=True, cover_agent="Standard"):
     """Create the final PDF packet"""
     try:
         merger = PdfMerger()
@@ -555,7 +563,7 @@ def create_packet(pdf_files, street_address, city_state, cover_photo_bytes, incl
         # Add cover page if requested
         if include_cover and cover_photo_bytes and COVER_AVAILABLE:
             cover_path = tempfile.mktemp(suffix='_cover.pdf')
-            if create_cover_page(cover_photo_bytes, street_address, city_state, cover_path):
+            if create_cover_page(cover_photo_bytes, street_address, city_state, cover_path, cover_agent):
                 with open(cover_path, 'rb') as f:
                     merger.append(f)
                 os.unlink(cover_path)
@@ -727,6 +735,15 @@ def main():
         include_cover = st.checkbox("📄 Include Custom Cover Page", value=False, disabled=not COVER_AVAILABLE)
         if not COVER_AVAILABLE:
             st.warning("⚠️ Cover page feature requires additional libraries. Install reportlab and Pillow.")
+        
+        # Agent template selector (only shown when cover page is enabled)
+        cover_agent = "Standard"
+        if include_cover and COVER_AVAILABLE:
+            cover_agent = st.selectbox(
+                "👤 Agent Cover Template",
+                options=["Standard", "Rachel", "Andrew"],
+                help="Select the agent-specific cover template. 'Standard' uses the default Hall Collins template."
+            )
     
     with settings_col2:
         # Instagram posts option (defined first so it can be used in conditional logic)
@@ -930,7 +947,8 @@ def main():
                             city_state, 
                             cover_photo_bytes, 
                             include_cover,
-                            compress_pdf_option
+                            compress_pdf_option,
+                            cover_agent
                         )
                         
                         # Create Instagram posts if requested
