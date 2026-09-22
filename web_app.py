@@ -609,6 +609,7 @@ def create_packet(pdf_files, street_address, city_state, cover_photo_bytes, incl
     """Create the final PDF packet"""
     try:
         merger = PdfMerger()
+        cover_path = None
         
         # Add cover page if requested
         if include_cover and cover_photo_bytes and COVER_AVAILABLE:
@@ -616,7 +617,8 @@ def create_packet(pdf_files, street_address, city_state, cover_photo_bytes, incl
             if create_cover_page(cover_photo_bytes, street_address, city_state, cover_path, cover_agent, qr_url):
                 with open(cover_path, 'rb') as f:
                     merger.append(f)
-                os.unlink(cover_path)
+            else:
+                cover_path = None
         
         # Add all PDFs
         for pdf_file in pdf_files:
@@ -629,11 +631,59 @@ def create_packet(pdf_files, street_address, city_state, cover_photo_bytes, incl
                 continue
         
         # Create output
-        output_buffer = BytesIO()
-        merger.write(output_buffer)
-        merger.close()
-        
-        pdf_bytes = output_buffer.getvalue()
+        try:
+            output_buffer = BytesIO()
+            merger.write(output_buffer)
+            merger.close()
+            pdf_bytes = output_buffer.getvalue()
+        except Exception as merge_error:
+            # PdfMerger failed (often due to a malformed PDF - e.g. "argument should be
+            # integer or None, not 'NullObject'"). Fall back to a page-by-page rebuild
+            # using PdfReader/PdfWriter with strict=False, skipping any bad pages/files.
+            st.warning(f"Standard merge failed ({merge_error}). Trying alternative method...")
+            try:
+                merger.close()
+            except Exception:
+                pass
+            
+            from PyPDF2 import PdfReader, PdfWriter
+            writer = PdfWriter()
+            
+            # Re-add cover page if it was created
+            if cover_path and os.path.exists(cover_path):
+                try:
+                    cover_reader = PdfReader(cover_path, strict=False)
+                    for page in cover_reader.pages:
+                        writer.add_page(page)
+                except Exception as cover_e:
+                    st.warning(f"Could not add cover page in fallback mode: {cover_e}")
+            
+            # Re-add each PDF one page at a time, skipping any that error out
+            skipped_files = []
+            for pdf_file in pdf_files:
+                try:
+                    reader = PdfReader(BytesIO(pdf_file['content']), strict=False)
+                    for page in reader.pages:
+                        try:
+                            writer.add_page(page)
+                        except Exception:
+                            continue  # skip just this bad page
+                except Exception as file_e:
+                    skipped_files.append(pdf_file['name'])
+                    st.warning(f"Skipped {pdf_file['name']} (corrupted): {file_e}")
+                    continue
+            
+            output_buffer = BytesIO()
+            writer.write(output_buffer)
+            pdf_bytes = output_buffer.getvalue()
+            
+            if skipped_files:
+                st.error(f"⚠️ The following file(s) were corrupted and could not be included: {', '.join(skipped_files)}")
+            else:
+                st.success("✅ Packet created successfully using alternative method")
+        finally:
+            if cover_path and os.path.exists(cover_path):
+                os.unlink(cover_path)
         
         # Apply compression if requested
         if compress_pdf_option:
